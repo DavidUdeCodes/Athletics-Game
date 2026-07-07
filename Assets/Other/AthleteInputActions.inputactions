@@ -1,0 +1,75 @@
+{
+    "version": 1,
+    "name": "AthleteInputActions",
+    "maps": [
+        {
+            "name": "Athlete",
+            "id": "7b371225-b4d8-4444-83a6-4eea5d3f7338",
+            "actions": [
+                {
+                    "name": "TapLeft",
+                    "type": "Button",
+                    "id": "2f715e52-8a07-465f-9f68-0a2ddcc603af",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                },
+                {
+                    "name": "TapRight",
+                    "type": "Button",
+                    "id": "c9d325b5-3799-4799-81bb-f33e7b51d3e9",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                },
+                {
+                    "name": "Tap",
+                    "type": "Button",
+                    "id": "3e0876f9-ea05-43d1-b4a3-6c3fff2ce56d",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                }
+            ],
+            "bindings": [
+                {
+                    "name": "",
+                    "id": "5e881684-dec3-4ac9-a1f8-12d515bd4ca1",
+                    "path": "<Keyboard>/#(A)",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "TapLeft",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "63bcf141-de7d-45d9-9f2c-37d4c5e9d5d2",
+                    "path": "<Keyboard>/#(D)",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "TapRight",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "be6a3511-42a2-4f37-9721-3aef741b5a94",
+                    "path": "<Keyboard>/space",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Tap",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                }
+            ]
+        }
+    ],
+    "controlSchemes": []
+}
