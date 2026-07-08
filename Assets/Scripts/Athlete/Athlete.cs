@@ -28,6 +28,8 @@ public class Athlete : MonoBehaviour
     private ISprintInputMode _currentInputMode;
     private ISprintInputModeUI _activeUI;
 
+    private float _pendingStartingBonus = 0f;
+
     public System.Action<Athlete, float> OnRaceFinished;
     public System.Action<Athlete> OnAthleteAtRest;
 
@@ -86,11 +88,13 @@ public class Athlete : MonoBehaviour
         if (_rhythmController != null)
         {
             _rhythmController.Initialize(this);
+            _rhythmController.OnFalseStartDetected += HandleFalseStart;
         }
 
         if (_forceControlInputMode != null)
         {
             _forceControlInputMode.Initialize(this);
+            _forceControlInputMode.OnFalseStartDetected += HandleFalseStart;
         }
 
         InitializeInputMode();
@@ -109,6 +113,7 @@ public class Athlete : MonoBehaviour
         {
             _input.OnTap += HandleInputQuality;
             _input.OnTap += HandleInputFeedback;
+            _input.OnTap += HandleReactionTiming;
         }
 
         if (_movement != null)
@@ -120,7 +125,10 @@ public class Athlete : MonoBehaviour
         {
             raceManager.OnRaceConfigChanged += HandleRaceConfigChanged;
             raceManager.OnInputModeChanged += HandleInputModeChanged;
+            raceManager.OnRaceStartStateChanged += HandleRaceStartStateChanged;
             RepositionForRaceConfig(raceManager.CurrentRaceConfig);
+            
+            SynchronizeWithCurrentRaceState();
         }
 
         StartRace();
@@ -132,6 +140,7 @@ public class Athlete : MonoBehaviour
         {
             _input.OnTap -= HandleInputQuality;
             _input.OnTap -= HandleInputFeedback;
+            _input.OnTap -= HandleReactionTiming;
         }
 
         if (_movement != null)
@@ -139,10 +148,21 @@ public class Athlete : MonoBehaviour
             _movement.OnAthleteAtRest -= HandleAthleteAtRest;
         }
 
+        if (_rhythmController != null)
+        {
+            _rhythmController.OnFalseStartDetected -= HandleFalseStart;
+        }
+
+        if (_forceControlInputMode != null)
+        {
+            _forceControlInputMode.OnFalseStartDetected -= HandleFalseStart;
+        }
+
         if (isPlayer && raceManager != null)
         {
             raceManager.OnRaceConfigChanged -= HandleRaceConfigChanged;
             raceManager.OnInputModeChanged -= HandleInputModeChanged;
+            raceManager.OnRaceStartStateChanged -= HandleRaceStartStateChanged;
         }
     }
 
@@ -255,6 +275,132 @@ public class Athlete : MonoBehaviour
             _activeUI.ShowQualityFeedback(quality);
     }
 
+    private void HandleReactionTiming(TapQuality quality)
+    {
+        if (isPlayer && raceManager != null && raceManager.CurrentStartState == RaceStartState.Go)
+        {
+            raceManager.RecordReactionTime(this);
+        }
+    }
+
+    private void HandleFalseStart()
+    {
+        if (isPlayer && raceManager != null)
+        {
+            raceManager.HandleFalseStart(this);
+        }
+    }
+
+    private void HandleRaceStartStateChanged(RaceStartState newState)
+    {
+        if (!isPlayer || !_raceActive) return;
+
+        switch (newState)
+        {
+            case RaceStartState.GetSet:
+                EnterGetSetState();
+                break;
+            case RaceStartState.Go:
+                EnterGoState();
+                break;
+            case RaceStartState.Running:
+                EnterRunningState();
+                break;
+        }
+    }
+
+    private void SynchronizeWithCurrentRaceState()
+    {
+        if (!isPlayer || raceManager == null) return;
+
+        RaceStartState currentState = raceManager.CurrentStartState;
+        switch (currentState)
+        {
+            case RaceStartState.GetSet:
+                EnterGetSetState();
+                break;
+            case RaceStartState.Go:
+                EnterGoState();
+                break;
+            case RaceStartState.Running:
+                EnterRunningState();
+                break;
+        }
+    }
+
+    public void EnterGetSetState()
+    {
+        if (_currentInputMode != null)
+        {
+            _currentInputMode.EnterGetSetState();
+        }
+        
+        if (_input != null)
+        {
+            _input.AllowInput(false);
+        }
+    }
+
+    public void EnterGoState()
+    {
+        if (_currentInputMode != null)
+        {
+            _currentInputMode.ExitGetSetState();
+        }
+        
+        if (_input != null)
+        {
+            _input.AllowInput(true);
+        }
+    }
+
+    public void EnterRunningState()
+    {
+        if (_currentInputMode != null)
+        {
+            _currentInputMode.EnterRunningState();
+        }
+        
+        if (_input != null)
+        {
+            _input.AllowInput(true);
+        }
+
+        if (_sprintController != null)
+        {
+            _sprintController.StartSprinting();
+        }
+
+        if (_movement != null)
+        {
+            _movement.StartMoving();
+        }
+
+        if (_pendingStartingBonus > 0f && _momentumController != null)
+        {
+            _momentumController.ApplyStartingBonus(_pendingStartingBonus);
+            _pendingStartingBonus = 0f;
+        }
+
+        if (raceManager != null)
+        {
+            raceManager.StartRace();
+        }
+    }
+
+    public void ApplyStartingMomentumBonus(float bonus)
+    {
+        _pendingStartingBonus = bonus;
+    }
+
+    public void ResetForFalseStart()
+    {
+        if (_currentInputMode != null)
+        {
+            _currentInputMode.Reset();
+        }
+    }
+
     private void HandleRaceConfigChanged(RaceConfiguration newConfig)
     {
         if (!isPlayer || !_raceActive) return;
@@ -287,18 +433,15 @@ public class Athlete : MonoBehaviour
         _raceActive = true;
         _hasFinishedRace = false;
         
-        _movement.StartMoving();
-        
         if (isPlayer && _input != null)
             _input.SetEnabled(true);
         
         if (raceManager != null)
         {
             raceManager.OnAthleteFinished += HandleAthleteFinished;
-            raceManager.StartRace();
         }
         
-        Debug.Log($"{athleteName} started race");
+        Debug.Log($"{athleteName} race initialization complete");
     }
 
     public void FinishRace()

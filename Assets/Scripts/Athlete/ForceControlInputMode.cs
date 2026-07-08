@@ -42,6 +42,9 @@ public class ForceControlInputMode : ISprintInputMode
 
     private TapQuality _lastQuality = TapQuality.Miss;
     private Athlete _athlete;
+    private bool _isInGetSetState = false;
+    private bool _inputAllowedForReaction = false;
+    private bool _gravityEnabled = false;
 
     public float MarkerPosition => _markerPosition;
     public float TargetZoneCenterPosition => _targetZoneCenter;
@@ -67,6 +70,17 @@ public class ForceControlInputMode : ISprintInputMode
 
     public override void OnNeutralTap()
     {
+        if (_isInGetSetState)
+        {
+            RaiseFalseStartDetected();
+            return;
+        }
+
+        if (!_inputAllowedForReaction)
+        {
+            return;
+        }
+
         float impulseStrength = impulseStrengthCurve.Evaluate(_markerPosition);
         _markerVelocity = impulseStrength;
 
@@ -82,6 +96,31 @@ public class ForceControlInputMode : ISprintInputMode
         _currentTargetZoneSize = baseTargetZoneSize;
         _targetZoneCenter = baseTargetZoneCenter;
         _lastQuality = TapQuality.Miss;
+        _isInGetSetState = false;
+        _inputAllowedForReaction = false;
+        _gravityEnabled = false;
+    }
+
+    public override void EnterGetSetState()
+    {
+        _isInGetSetState = true;
+        _gravityEnabled = false;
+        _inputAllowedForReaction = false;
+        _markerPosition = 0.5f;
+        _markerVelocity = 0f;
+    }
+
+    public override void ExitGetSetState()
+    {
+        _isInGetSetState = false;
+        _inputAllowedForReaction = true;
+    }
+
+    public override void EnterRunningState()
+    {
+        _isInGetSetState = false;
+        _gravityEnabled = true;
+        _inputAllowedForReaction = true;
     }
 
     private void Update()
@@ -101,7 +140,11 @@ public class ForceControlInputMode : ISprintInputMode
 
     private void UpdateMarkerPosition()
     {
-        _markerVelocity -= _currentGravity * Time.deltaTime;
+        if (_gravityEnabled)
+        {
+            _markerVelocity -= _currentGravity * Time.deltaTime;
+        }
+        
         _markerPosition += _markerVelocity * Time.deltaTime;
 
         _markerPosition = Mathf.Clamp01(_markerPosition);

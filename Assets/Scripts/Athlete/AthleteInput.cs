@@ -17,6 +17,7 @@ public class AthleteInput : MonoBehaviour
 
     private ISprintInputMode _currentInputMode;
     private bool _enabled = false;
+    private bool _inputAllowed = false;
 
     private void Awake()
     {
@@ -44,6 +45,11 @@ public class AthleteInput : MonoBehaviour
     public void SetEnabled(bool value)
     {
         _enabled = value;
+    }
+
+    public void AllowInput(bool value)
+    {
+        _inputAllowed = value;
     }
 
     public void SetInputMode(ISprintInputMode inputMode)
@@ -108,7 +114,11 @@ public class AthleteInput : MonoBehaviour
 
         _currentInputMode.OnDirectionalTap(direction);
         TapQuality quality = _currentInputMode.GetLastQuality();
-        OnTap?.Invoke(quality);
+        
+        if (_inputAllowed)
+        {
+            OnTap?.Invoke(quality);
+        }
     }
 
     private void ProcessNeutralTap()
@@ -117,7 +127,11 @@ public class AthleteInput : MonoBehaviour
 
         _currentInputMode.OnNeutralTap();
         TapQuality quality = _currentInputMode.GetLastQuality();
-        OnTap?.Invoke(quality);
+        
+        if (_inputAllowed)
+        {
+            OnTap?.Invoke(quality);
+        }
     }
 
     private void UpdateActionStates()

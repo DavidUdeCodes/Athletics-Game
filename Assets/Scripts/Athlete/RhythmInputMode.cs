@@ -41,6 +41,8 @@ public class RhythmInputMode : ISprintInputMode
     private TapQuality _lastQuality = TapQuality.Miss;
     private TapDirection _lastTapDirection = TapDirection.Left;
     private Athlete _athlete;
+    private bool _isInGetSetState = false;
+    private bool _inputAllowedForReaction = false;
 
     public float MarkerPosition => _markerPosition;
     public float CurrentRhythmSpeed => _currentRhythmSpeed;
@@ -81,6 +83,29 @@ public class RhythmInputMode : ISprintInputMode
         _lastQuality = TapQuality.Miss;
         _lastTapDirection = TapDirection.Left;
         _firstInputReceived = false;
+        _isInGetSetState = false;
+        _inputAllowedForReaction = false;
+        PrepareForFirstInput();
+    }
+
+    public override void EnterGetSetState()
+    {
+        _isInGetSetState = true;
+        _firstInputReceived = false;
+        _inputAllowedForReaction = false;
+    }
+
+    public override void ExitGetSetState()
+    {
+        _isInGetSetState = false;
+        _inputAllowedForReaction = true;
+    }
+
+    public override void EnterRunningState()
+    {
+        _isInGetSetState = false;
+        _inputAllowedForReaction = true;
+        _firstInputReceived = false;
         PrepareForFirstInput();
     }
 
@@ -106,6 +131,17 @@ public class RhythmInputMode : ISprintInputMode
 
     public override void OnDirectionalTap(TapDirection direction)
     {
+        if (_isInGetSetState)
+        {
+            RaiseFalseStartDetected();
+            return;
+        }
+
+        if (!_inputAllowedForReaction)
+        {
+            return;
+        }
+
         if (direction == _lastTapDirection)
         {
             _lastQuality = TapQuality.Miss;

@@ -57,6 +57,12 @@ public class MomentumController : MonoBehaviour
         _currentMomentum = Mathf.Clamp01(_currentMomentum);
     }
 
+    public void ApplyStartingBonus(float bonus)
+    {
+        _currentMomentum += bonus;
+        _currentMomentum = Mathf.Clamp01(_currentMomentum);
+    }
+
     public void Tick(float deltaTime)
     {
         _currentMomentum -= baseDecayRate * deltaTime;
