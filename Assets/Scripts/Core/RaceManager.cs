@@ -68,7 +68,6 @@ public class RaceManager : MonoBehaviour
     private bool _raceFinished = false;
     
     private RaceStartState _currentStartState = RaceStartState.Idle;
-    private float _startSequenceTimer = 0f;
     private float _reactionTimer = 0f;
     private bool _reactionTimeRecorded = false;
     

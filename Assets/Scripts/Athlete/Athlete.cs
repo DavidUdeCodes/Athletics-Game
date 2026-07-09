@@ -24,6 +24,7 @@ public class Athlete : MonoBehaviour
     private ForceControlInputMode _forceControlInputMode;
     private SprintController _sprintController;
     private MomentumController _momentumController;
+    private AthleteAnimationController _animationController;
 
     private ISprintInputMode _currentInputMode;
     private ISprintInputModeUI _activeUI;
@@ -53,6 +54,7 @@ public class Athlete : MonoBehaviour
         _forceControlInputMode = GetComponent<ForceControlInputMode>();
         _sprintController = GetComponent<SprintController>();
         _momentumController = GetComponent<MomentumController>();
+        _animationController = GetComponent<AthleteAnimationController>();
         
         if (_rhythmController == null)
         {
@@ -121,14 +123,31 @@ public class Athlete : MonoBehaviour
             _movement.OnAthleteAtRest += HandleAthleteAtRest;
         }
 
+        // Single source of truth for race-start-state animation/reset handling.
+        // Not gated by isPlayer: RaceManager.NotifyAthletesOfStateChange already
+        // calls EnterGetSetState/EnterGoState/EnterRunningState directly on every
+        // athlete (player and AI alike), so this handler only needs to cover the
+        // states RaceManager doesn't push directly - OnYourMarks, and FalseStart
+        // (which bypasses SetRaceStartState entirely and never raises
+        // OnRaceStartStateChanged in the first place).
+        if (raceManager != null)
+        {
+            raceManager.OnRaceStartStateChanged += HandleRaceStartStateChanged;
+            raceManager.OnFalseStart += HandleFalseStartAnimation;
+        }
+
         if (isPlayer && raceManager != null)
         {
             raceManager.OnRaceConfigChanged += HandleRaceConfigChanged;
             raceManager.OnInputModeChanged += HandleInputModeChanged;
-            raceManager.OnRaceStartStateChanged += HandleRaceStartStateChanged;
             RepositionForRaceConfig(raceManager.CurrentRaceConfig);
-            
+
             SynchronizeWithCurrentRaceState();
+        }
+
+        if (_animationController != null)
+        {
+            _animationController.OnFinishDipComplete += HandleFinishDipComplete;
         }
 
         StartRace();
@@ -158,11 +177,21 @@ public class Athlete : MonoBehaviour
             _forceControlInputMode.OnFalseStartDetected -= HandleFalseStart;
         }
 
+        if (raceManager != null)
+        {
+            raceManager.OnRaceStartStateChanged -= HandleRaceStartStateChanged;
+            raceManager.OnFalseStart -= HandleFalseStartAnimation;
+        }
+
         if (isPlayer && raceManager != null)
         {
             raceManager.OnRaceConfigChanged -= HandleRaceConfigChanged;
             raceManager.OnInputModeChanged -= HandleInputModeChanged;
-            raceManager.OnRaceStartStateChanged -= HandleRaceStartStateChanged;
+        }
+
+        if (_animationController != null)
+        {
+            _animationController.OnFinishDipComplete -= HandleFinishDipComplete;
         }
     }
 
@@ -291,21 +320,16 @@ public class Athlete : MonoBehaviour
         }
     }
 
+    // Covers only the race-start states RaceManager doesn't already push directly
+    // via NotifyAthletesOfStateChange (see EnterGetSetState/EnterGoState/EnterRunningState
+    // below, which RaceManager calls on every athlete for GetSet/Go/Running).
+    // Applies to every athlete with an animation controller, not just the player -
+    // AI athletes need the OnYourMarks pose too.
     private void HandleRaceStartStateChanged(RaceStartState newState)
     {
-        if (!isPlayer || !_raceActive) return;
-
-        switch (newState)
+        if (newState == RaceStartState.OnYourMarks)
         {
-            case RaceStartState.GetSet:
-                EnterGetSetState();
-                break;
-            case RaceStartState.Go:
-                EnterGoState();
-                break;
-            case RaceStartState.Running:
-                EnterRunningState();
-                break;
+            _animationController?.SetRaceState(RaceStartState.OnYourMarks);
         }
     }
 
@@ -316,6 +340,9 @@ public class Athlete : MonoBehaviour
         RaceStartState currentState = raceManager.CurrentStartState;
         switch (currentState)
         {
+            case RaceStartState.OnYourMarks:
+                _animationController?.SetRaceState(RaceStartState.OnYourMarks);
+                break;
             case RaceStartState.GetSet:
                 EnterGetSetState();
                 break;
@@ -328,6 +355,10 @@ public class Athlete : MonoBehaviour
         }
     }
 
+    // Called directly by RaceManager.NotifyAthletesOfStateChange for every athlete
+    // (player and AI) - do not also call these from an event handler, or gameplay
+    // side effects (input, movement, sprint start) will fire twice per transition
+    // for the player.
     public void EnterGetSetState()
     {
         if (_currentInputMode != null)
@@ -339,6 +370,8 @@ public class Athlete : MonoBehaviour
         {
             _input.AllowInput(false);
         }
+
+        _animationController?.SetRaceState(RaceStartState.GetSet);
     }
 
     public void EnterGoState()
@@ -352,6 +385,11 @@ public class Athlete : MonoBehaviour
         {
             _input.AllowInput(true);
         }
+
+        // No dedicated Animator pose for Go - visually it's the same crouched
+        // stance as GetSet (the athlete hasn't moved yet, just reacting), and the
+        // window is often a single frame anyway. RaceState stays at GetSet until
+        // Running fires.
     }
 
     public void EnterRunningState()
@@ -374,6 +412,11 @@ public class Athlete : MonoBehaviour
         if (_movement != null)
         {
             _movement.StartMoving();
+        }
+
+        if (_animationController != null)
+        {
+            _animationController.SetRaceState(RaceStartState.Running);
         }
 
         if (_pendingStartingBonus > 0f && _momentumController != null)
@@ -399,6 +442,8 @@ public class Athlete : MonoBehaviour
         {
             _currentInputMode.Reset();
         }
+
+        _animationController?.ResetAnimationState();
     }
 
     private void HandleRaceConfigChanged(RaceConfiguration newConfig)
@@ -452,15 +497,35 @@ public class Athlete : MonoBehaviour
 
         _movement.FinishRace();
 
-        OnRaceFinished?.Invoke(this, _raceTime);
+        if (_animationController != null)
+        {
+            // OnRaceFinished now fires once the dip animation actually completes
+            // (see HandleFinishDipComplete), rather than the instant the trigger is set.
+            _animationController.PlayFinishDip();
+        }
+        else
+        {
+            OnRaceFinished?.Invoke(this, _raceTime);
+        }
 
         Debug.Log($"{athleteName} finished in {_raceTime:F2}s");
+    }
+
+    private void HandleFinishDipComplete()
+    {
+        if (!_hasFinishedRace) return;
+        OnRaceFinished?.Invoke(this, _raceTime);
     }
 
     private void HandleAthleteAtRest()
     {
         _raceActive = false;
         
+        // Finished already exists as a real race-start state and wasn't wired to
+        // the Animator before - it's a better fit for the cooldown pose than
+        // forcing the speed-driven blend tree toward its low end artificially.
+        _animationController?.SetRaceState(RaceStartState.Finished);
+
         if (raceManager != null)
         {
             raceManager.RegisterAthleteAtRest(this);
@@ -479,6 +544,18 @@ public class Athlete : MonoBehaviour
         {
             raceManager.CheckForAthleteFinish(this, CurrentDistance);
         }
+
+        UpdateAnimationSprint();
+    }
+
+    private void UpdateAnimationSprint()
+    {
+        if (_animationController == null || _momentumController == null)
+            return;
+
+        // Sprint/jog is a continuous blend on speed now, not a discrete phase -
+        // no need to watch for a max-speed transition here anymore.
+        _animationController.SetNormalizedSpeed(_momentumController.CurrentMomentum);
     }
 
     private void HandleAthleteFinished(Athlete athlete, int finishOrder, float raceTime)
@@ -488,6 +565,23 @@ public class Athlete : MonoBehaviour
             FinishRace();
         }
     }
+
+    // Raised whenever RaceManager's FalseStartSequence resets state - this bypasses
+    // SetRaceStartState entirely, so it's the one race-flow event that never comes
+    // through OnRaceStartStateChanged and needs its own subscription.
+    private void HandleFalseStartAnimation()
+    {
+        if (_animationController == null) return;
+
+        _animationController.SetRaceState(RaceStartState.FalseStart);
+        _animationController.ResetAnimationState();
+    }
+
+    // Public pass-throughs for one-off animation calls triggered from outside the
+    // race-state flow - e.g. a victory emote after finishing, or holding a flag
+    // pose on a menu/results screen.
+    public void PlayEmote(EmoteType emote) => _animationController?.PlayEmote(emote);
+    public void SetFlagHold(bool isHolding) => _animationController?.SetFlagHold(isHolding);
 
     public float RaceTime => _raceTime;
     public bool HasFinishedRace => _hasFinishedRace;
