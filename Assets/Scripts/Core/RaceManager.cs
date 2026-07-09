@@ -105,6 +105,15 @@ public class RaceManager : MonoBehaviour
             }
         }
         
+        if (EventSessionManager.Instance.HasConfig)
+        {
+            EventSessionConfig sessionConfig = EventSessionManager.Instance.CurrentConfig;
+            raceDistance = sessionConfig.SelectedDistance;
+            currentInputMode = sessionConfig.InputMode;
+            playerLane = sessionConfig.GetPlayerLane(playerLane);
+            Debug.Log($"[RaceManager] Using EventSessionConfig: {sessionConfig}");
+        }
+        
         SetupRace(raceDistance, playerLane);
         
         BeginRaceStart();

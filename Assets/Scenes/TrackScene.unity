@@ -18302,8 +18302,8 @@ MonoBehaviour:
   raceDistance: 400
   playerLane: 3
   currentInputMode: 0
-  minOnYourMarksDelay: 1.25
-  maxOnYourMarksDelay: 2
+  minOnYourMarksDelay: 3
+  maxOnYourMarksDelay: 4
   minGetSetDelay: 1.2
   maxGetSetDelay: 2.3
   perfectStartThreshold: 0.15
