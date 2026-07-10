@@ -2,6 +2,7 @@ using UnityEngine;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 
 public enum RaceDistance { Distance100m = 100, Distance200m = 200, Distance400m = 400 }
 public enum SprintInputMode { Rhythm, ForceControl }
@@ -56,22 +57,27 @@ public class RaceManager : MonoBehaviour
     [Header("Dependencies")]
     [SerializeField] [Tooltip("Track manager providing track configurations")]
     private TrackManager trackManager;
+    [SerializeField] [Tooltip("Race timer for tracking official times")]
+    private RaceTimer raceTimer;
     
     private RaceConfiguration _currentRaceConfig;
     private Dictionary<Athlete, bool> _athleteFinished = new();
     private Dictionary<Athlete, bool> _athleteAtRest = new();
     private Dictionary<Athlete, int> _athleteFinishOrder = new();
+    private Dictionary<Athlete, float> _athleteFinishTimes = new();
     private Dictionary<Athlete, float> _athleteReactionTimes = new();
     private Dictionary<Athlete, ReactionQuality> _athleteReactionQualities = new();
     private int _finishCounter = 0;
     private bool _raceActive = false;
     private bool _raceFinished = false;
+    private bool _playerHasFinished = false;
     
     private RaceStartState _currentStartState = RaceStartState.Idle;
     private float _reactionTimer = 0f;
     private bool _reactionTimeRecorded = false;
     
     public event Action<Athlete, int, float> OnAthleteFinished;
+    public event Action<Athlete> OnPlayerFinished;
     public event Action<Athlete> OnAthleteAtRest;
     public event Action OnRaceFinished;
     public event Action<RaceConfiguration> OnRaceConfigChanged;
@@ -82,6 +88,7 @@ public class RaceManager : MonoBehaviour
     public RaceConfiguration CurrentRaceConfig => _currentRaceConfig;
     public bool IsRaceActive => _raceActive;
     public bool IsRaceFinished => _raceFinished;
+    public bool HasPlayerFinished => _playerHasFinished;
     public float RaceDistanceInMeters => (float)raceDistance;
     public int PlayerLane => playerLane;
     public SprintInputMode CurrentInputMode => currentInputMode;
@@ -102,6 +109,16 @@ public class RaceManager : MonoBehaviour
             {
                 Debug.LogError("TrackManager not found in scene");
                 return;
+            }
+        }
+        
+        if (raceTimer == null)
+        {
+            raceTimer = FindAnyObjectByType<RaceTimer>();
+            if (raceTimer == null)
+            {
+                GameObject timerGO = new GameObject("RaceTimer");
+                raceTimer = timerGO.AddComponent<RaceTimer>();
             }
         }
         
@@ -152,9 +169,13 @@ public class RaceManager : MonoBehaviour
         _athleteFinished.Clear();
         _athleteAtRest.Clear();
         _athleteFinishOrder.Clear();
+        _athleteFinishTimes.Clear();
         _athleteReactionTimes.Clear();
         _athleteReactionQualities.Clear();
         _finishCounter = 0;
+        _playerHasFinished = false;
+        
+        raceTimer?.ResetTimer();
         
         StartCoroutine(RaceStartSequence());
     }
@@ -305,6 +326,7 @@ public class RaceManager : MonoBehaviour
     {
         _raceActive = true;
         _raceFinished = false;
+        raceTimer?.StartTimer();
         Debug.Log($"Race started: {_currentRaceConfig.RaceDistance}m");
     }
     
@@ -328,9 +350,19 @@ public class RaceManager : MonoBehaviour
             _athleteFinished[athlete] = true;
             _athleteFinishOrder[athlete] = _finishCounter;
             
-            OnAthleteFinished?.Invoke(athlete, _finishCounter, athlete.RaceTime);
+            float officialFinishTime = raceTimer != null ? raceTimer.ElapsedTime : athlete.RaceTime;
+            _athleteFinishTimes[athlete] = officialFinishTime;
             
-            Debug.Log($"{athlete.athleteName} finished in position {_finishCounter} with time {athlete.RaceTime:F2}s");
+            OnAthleteFinished?.Invoke(athlete, _finishCounter, officialFinishTime);
+            
+            if (athlete.isPlayer)
+            {
+                _playerHasFinished = true;
+                raceTimer?.StopTimer();
+                OnPlayerFinished?.Invoke(athlete);
+            }
+            
+            Debug.Log($"{athlete.athleteName} finished in position {_finishCounter} with time {officialFinishTime:F2}s");
         }
     }
 
@@ -392,6 +424,46 @@ public class RaceManager : MonoBehaviour
     public ReactionQuality GetAthleteReactionQuality(Athlete athlete)
     {
         return _athleteReactionQualities.ContainsKey(athlete) ? _athleteReactionQualities[athlete] : ReactionQuality.VerySlowStart;
+    }
+
+    public float GetAthleteFinishTime(Athlete athlete)
+    {
+        return _athleteFinishTimes.ContainsKey(athlete) ? _athleteFinishTimes[athlete] : -1f;
+    }
+
+    public float GetPlayerFinishTime()
+    {
+        Athlete playerAthlete = FindObjectsByType<Athlete>().FirstOrDefault(a => a.isPlayer);
+        if (playerAthlete == null)
+            return -1f;
+
+        return GetAthleteFinishTime(playerAthlete);
+    }
+
+    public List<RaceResult> GetRaceResults()
+    {
+        var results = new List<RaceResult>();
+
+        foreach (var athlete in _athleteFinished.Keys)
+        {
+            if (!_athleteFinished[athlete])
+                continue;
+
+            int placement = _athleteFinishOrder[athlete];
+            float finishTime = GetAthleteFinishTime(athlete);
+            var result = new RaceResult(
+                placement,
+                athlete.athleteName,
+                "Unknown",
+                finishTime,
+                athlete.isPlayer,
+                athlete
+            );
+            results.Add(result);
+        }
+
+        results.Sort((a, b) => a.Placement.CompareTo(b.Placement));
+        return results;
     }
     
     public void SetRaceDistance(RaceDistance distance)

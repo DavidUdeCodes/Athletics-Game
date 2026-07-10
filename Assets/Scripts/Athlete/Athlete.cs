@@ -36,6 +36,7 @@ public class Athlete : MonoBehaviour
 
     private float _raceTime = 0f;
     private bool _raceActive = false;
+    private bool _raceOfficiallyStarted = false;
     private bool _hasFinishedRace = false;
 
     public float CurrentDistance => _movement != null ? _movement.DistanceTravelled : 0f;
@@ -429,6 +430,8 @@ public class Athlete : MonoBehaviour
         {
             raceManager.StartRace();
         }
+
+        _raceOfficiallyStarted = true;
     }
 
     public void ApplyStartingMomentumBonus(float bonus)
@@ -444,6 +447,8 @@ public class Athlete : MonoBehaviour
         }
 
         _animationController?.ResetAnimationState();
+        _raceOfficiallyStarted = false;
+        _raceTime = 0f;
     }
 
     private void HandleRaceConfigChanged(RaceConfiguration newConfig)
@@ -470,6 +475,8 @@ public class Athlete : MonoBehaviour
             
         _movement.ResetMovementState();
         _hasFinishedRace = false;
+        _raceOfficiallyStarted = false;
+        _raceTime = 0f;
     }
 
     public void StartRace()
@@ -538,7 +545,10 @@ public class Athlete : MonoBehaviour
     {
         if (!_raceActive) return;
         
-        _raceTime += Time.deltaTime;
+        if (_raceOfficiallyStarted)
+        {
+            _raceTime += Time.deltaTime;
+        }
         
         if (!_hasFinishedRace && raceManager != null && raceManager.IsRaceActive)
         {
