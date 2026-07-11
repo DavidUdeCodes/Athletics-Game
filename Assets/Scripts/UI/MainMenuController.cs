@@ -1,11 +1,29 @@
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using UnityEngine.UI;
 
 public class MainMenuController : MonoBehaviour
 {
     [SerializeField] private EventSelectorPanel eventSelectorPanel;
     [SerializeField] private SettingsPanel settingsPanel;
     [SerializeField] private string raceSceneName = "TrackScene";
+
+    [Header("Buttons")]
+    [SerializeField] private Button playButton;
+    [SerializeField] private Button eventSelectorButton;
+    [SerializeField] private Button settingsButton;
+
+    private void Awake()
+    {
+        if (playButton != null)
+            playButton.onClick.AddListener(OnPlayButtonPressed);
+
+        if (eventSelectorButton != null)
+            eventSelectorButton.onClick.AddListener(OnEventSelectorButtonPressed);
+
+        if (settingsButton != null)
+            settingsButton.onClick.AddListener(OnSettingsButtonPressed);
+    }
 
     private void Start()
     {
@@ -15,14 +33,10 @@ public class MainMenuController : MonoBehaviour
     private void InitializePanels()
     {
         if (eventSelectorPanel == null)
-        {
-            eventSelectorPanel = FindAnyObjectByType<EventSelectorPanel>();
-        }
+            Debug.LogError($"{gameObject.name}: EventSelectorPanel not assigned to MainMenuController in Inspector");
 
         if (settingsPanel == null)
-        {
-            settingsPanel = FindAnyObjectByType<SettingsPanel>();
-        }
+            Debug.LogError($"{gameObject.name}: SettingsPanel not assigned to MainMenuController in Inspector");
 
         if (eventSelectorPanel != null)
         {

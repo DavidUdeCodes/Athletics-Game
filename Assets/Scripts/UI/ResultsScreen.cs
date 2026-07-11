@@ -28,7 +28,7 @@ public class ResultsScreen : MonoBehaviour
         InitializeReferences();
         InitializeCanvasGroup();
         SetupButtonListeners();
-        HideResults();
+        HideResultsScreen();
     }
 
     private void OnDestroy()
@@ -39,7 +39,7 @@ public class ResultsScreen : MonoBehaviour
     private void InitializeReferences()
     {
         if (raceManager == null)
-            raceManager = FindAnyObjectByType<RaceManager>();
+            Debug.LogError($"{gameObject.name}: RaceManager not assigned to ResultsScreen in Inspector");
 
         if (sessionManager == null)
             sessionManager = EventSessionManager.Instance;
@@ -120,7 +120,7 @@ public class ResultsScreen : MonoBehaviour
         }
     }
 
-    private void HideResults()
+    private void HideResultsScreen()
     {
         if (_canvasGroup != null)
         {

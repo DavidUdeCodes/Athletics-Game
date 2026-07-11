@@ -14,22 +14,26 @@ public class EventSelectorPanel : MonoBehaviour, IPanelUI
 
     private RaceDistance _selectedDistance = RaceDistance.Distance100m;
 
+    [SerializeField] private Button backButton;
+
     private void OnEnable()
     {
         if (canvasGroup == null)
             canvasGroup = GetComponent<CanvasGroup>();
+            
+        backButton.onClick.AddListener(() => SetActive(false));
+    }
+
+    private void OnDisable()
+    {
+        backButton.onClick.RemoveListener(() => SetActive(false));
     }
 
     public void Initialize()
     {
         if (eventManager == null)
         {
-            eventManager = FindAnyObjectByType<EventManager>();
-        }
-
-        if (eventManager == null)
-        {
-            Debug.LogError("EventSelectorPanel: EventManager not found in scene");
+            Debug.LogError($"{gameObject.name}: EventManager not assigned to EventSelectorPanel in Inspector");
             return;
         }
 

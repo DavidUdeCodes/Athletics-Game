@@ -3,7 +3,7 @@ using System.Collections;
 using TMPro;
 using System;
 
-public class RaceFinishFlowManager : MonoBehaviour
+public class RaceFinishManager : MonoBehaviour
 {
     [Header("Finish Sequence")]
     [SerializeField] [Tooltip("Delay before showing results screen (seconds)")]
@@ -11,14 +11,18 @@ public class RaceFinishFlowManager : MonoBehaviour
 
     [Space]
     [Header("Finish Message Display")]
-    [SerializeField] private TextMeshProUGUI finishedMessageDisplay;
+    [SerializeField] private TextMeshProUGUI finishedMessageText;
+    [SerializeField] private CanvasGroup finishedMessageCanvasGroup;
+
     [SerializeField] [Tooltip("Duration of finish message animation")]
     private float finishMessageDuration = 1.0f;
+    
 
     [Space]
     [Header("References")]
     [SerializeField] private RaceManager raceManager;
     [SerializeField] private ResultsScreen resultsScreen;
+    [SerializeField] private RaceHUD raceHUD;
 
     private CanvasGroup _messageCanvasGroup;
     private bool _finishSequenceActive = false;
@@ -41,22 +45,17 @@ public class RaceFinishFlowManager : MonoBehaviour
     private void InitializeReferences()
     {
         if (raceManager == null)
-            raceManager = FindAnyObjectByType<RaceManager>();
+            Debug.LogError($"{gameObject.name}: RaceManager not assigned to RaceFinishFlowManager in Inspector");
 
         if (resultsScreen == null)
-            resultsScreen = FindAnyObjectByType<ResultsScreen>();
+            Debug.LogError($"{gameObject.name}: ResultsScreen not assigned to RaceFinishFlowManager in Inspector");
     }
 
     private void InitializeCanvasGroup()
     {
-        if (finishedMessageDisplay != null)
+        if (finishedMessageCanvasGroup != null)
         {
-            _messageCanvasGroup = finishedMessageDisplay.GetComponent<CanvasGroup>();
-            if (_messageCanvasGroup == null)
-            {
-                _messageCanvasGroup = finishedMessageDisplay.gameObject.AddComponent<CanvasGroup>();
-            }
-            _messageCanvasGroup.alpha = 0f;
+            finishedMessageCanvasGroup.alpha = 0f;
         }
     }
 
@@ -100,10 +99,10 @@ public class RaceFinishFlowManager : MonoBehaviour
 
     private IEnumerator DisplayFinishedMessage()
     {
-        if (finishedMessageDisplay == null || _messageCanvasGroup == null)
+        if (finishedMessageText == null || _messageCanvasGroup == null)
             yield break;
 
-        finishedMessageDisplay.text = "FINISHED";
+        finishedMessageText.text = "FINISHED";
 
         float elapsed = 0f;
         while (elapsed < finishMessageDuration)
@@ -125,7 +124,7 @@ public class RaceFinishFlowManager : MonoBehaviour
             float t = 1f - (elapsed / (finishMessageDuration * 0.5f));
             
             float scale = Mathf.Lerp(1f, 0.8f, 1f - t);
-            finishedMessageDisplay.transform.localScale = new Vector3(scale, scale, 1f);
+            finishedMessageText.transform.localScale = new Vector3(scale, scale, 1f);
             
             yield return null;
         }
@@ -136,6 +135,9 @@ public class RaceFinishFlowManager : MonoBehaviour
         if (resultsScreen != null)
         {
             resultsScreen.ShowResults(GetRaceResults());
+            raceHUD.HideHUD();
+
+            finishedMessageCanvasGroup.alpha = 0f;
         }
         else
         {

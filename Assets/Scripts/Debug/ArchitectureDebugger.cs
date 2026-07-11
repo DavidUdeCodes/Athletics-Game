@@ -4,43 +4,45 @@ using UnityEngine.Splines;
 public class ArchitectureDebugger : MonoBehaviour
 {
     [SerializeField] private bool showDebugInfo = true;
-    
-    private RaceManager _raceManager;
-    private TrackManager _trackManager;
+    [SerializeField] private RaceManager raceManager;
+    [SerializeField] private TrackManager trackManager;
     
     private void Start()
     {
-        _raceManager = FindAnyObjectByType<RaceManager>();
-        _trackManager = FindAnyObjectByType<TrackManager>();
+        if (raceManager == null)
+            Debug.LogWarning($"{gameObject.name}: RaceManager not assigned to ArchitectureDebugger in Inspector");
+        
+        if (trackManager == null)
+            Debug.LogWarning($"{gameObject.name}: TrackManager not assigned to ArchitectureDebugger in Inspector");
     }
     
     [ContextMenu("Debug: Validate Race Configuration")]
     public void DebugRaceConfiguration()
     {
-        if (_raceManager == null)
+        if (raceManager == null)
         {
             Debug.LogError("RaceManager not found");
             return;
         }
         
-        RaceConfiguration config = _raceManager.CurrentRaceConfig;
+        RaceConfiguration config = raceManager.CurrentRaceConfig;
         
         Debug.Log("=== RACE CONFIGURATION DEBUG ===");
         Debug.Log($"Race Distance: {config.RaceDistance}m");
-        Debug.Log($"Player Lane: {_raceManager.PlayerLane}");
+        Debug.Log($"Player Lane: {raceManager.PlayerLane}");
         Debug.Log($"Track Valid: {config.TrackConfig.IsValid}");
     }
     
     [ContextMenu("Debug: Show All Lane Splines")]
     public void DebugAllLaneSplines()
     {
-        if (_raceManager == null)
+        if (raceManager == null)
         {
             Debug.LogError("RaceManager not found");
             return;
         }
         
-        RaceConfiguration config = _raceManager.CurrentRaceConfig;
+        RaceConfiguration config = raceManager.CurrentRaceConfig;
         
         if (!config.IsValid)
         {
@@ -62,13 +64,13 @@ public class ArchitectureDebugger : MonoBehaviour
     [ContextMenu("Debug: Show Athlete Start Positions")]
     public void DebugAthleteStartPositions()
     {
-        if (_raceManager == null)
+        if (raceManager == null)
         {
             Debug.LogError("RaceManager not found");
             return;
         }
         
-        RaceConfiguration config = _raceManager.CurrentRaceConfig;
+        RaceConfiguration config = raceManager.CurrentRaceConfig;
         
         if (!config.IsValid)
         {
@@ -90,7 +92,7 @@ public class ArchitectureDebugger : MonoBehaviour
     [ContextMenu("Debug: Show Spline Configuration")]
     public void DebugSplineConfiguration()
     {
-        if (_trackManager == null)
+        if (trackManager == null)
         {
             Debug.LogError("TrackManager not found");
             return;
@@ -98,7 +100,7 @@ public class ArchitectureDebugger : MonoBehaviour
         
         Debug.Log("=== SPLINE CONFIGURATION ===");
         
-        TrackConfiguration track = _trackManager.GetTrackForRace(RaceDistance.Distance100m);
+        TrackConfiguration track = trackManager.GetTrackForRace(RaceDistance.Distance100m);
         
         if (track != null)
         {
@@ -122,7 +124,7 @@ public class ArchitectureDebugger : MonoBehaviour
     [ContextMenu("Debug: Validate Athlete Positions")]
     public void DebugAthletePositions()
     {
-        if (_raceManager == null)
+        if (raceManager == null)
         {
             Debug.LogError("RaceManager not found");
             return;
@@ -132,7 +134,7 @@ public class ArchitectureDebugger : MonoBehaviour
         
         Debug.Log($"=== {athletes.Length} ATHLETES IN SCENE ===");
         
-        RaceConfiguration config = _raceManager.CurrentRaceConfig;
+        RaceConfiguration config = raceManager.CurrentRaceConfig;
         
         if (!config.IsValid)
         {
@@ -153,13 +155,13 @@ public class ArchitectureDebugger : MonoBehaviour
     [ContextMenu("Debug: Check Coordinate Spaces")]
     public void DebugCoordinateSpaces()
     {
-        if (_raceManager == null)
+        if (raceManager == null)
         {
             Debug.LogError("RaceManager not found");
             return;
         }
         
-        RaceConfiguration config = _raceManager.CurrentRaceConfig;
+        RaceConfiguration config = raceManager.CurrentRaceConfig;
         
         if (!config.IsValid)
         {
@@ -190,7 +192,7 @@ public class ArchitectureDebugger : MonoBehaviour
     [ContextMenu("Debug: Finish Detection Status")]
     public void DebugFinishDetection()
     {
-        if (_raceManager == null)
+        if (raceManager == null)
         {
             Debug.LogError("RaceManager not found");
             return;
@@ -199,16 +201,16 @@ public class ArchitectureDebugger : MonoBehaviour
         Athlete[] athletes = FindObjectsByType<Athlete>();
         
         Debug.Log("=== FINISH DETECTION STATUS ===");
-        Debug.Log($"Race Active: {_raceManager.IsRaceActive}");
-        Debug.Log($"Race Finished: {_raceManager.IsRaceFinished}");
-        Debug.Log($"Finish Distance: {_raceManager.CurrentRaceConfig.GetFinishDistance()}m");
+        Debug.Log($"Race Active: {raceManager.IsRaceActive}");
+        Debug.Log($"Race Finished: {raceManager.IsRaceFinished}");
+        Debug.Log($"Finish Distance: {raceManager.CurrentRaceConfig.GetFinishDistance()}m");
         Debug.Log("");
         
         foreach (Athlete athlete in athletes)
         {
-            bool finished = _raceManager.HasAthleteFinished(athlete);
-            bool atRest = _raceManager.IsAthleteAtRest(athlete);
-            int order = _raceManager.GetAthleteFinishOrder(athlete);
+            bool finished = raceManager.HasAthleteFinished(athlete);
+            bool atRest = raceManager.IsAthleteAtRest(athlete);
+            int order = raceManager.GetAthleteFinishOrder(athlete);
             
             if (finished && atRest)
             {
@@ -267,9 +269,9 @@ public class ArchitectureDebugger : MonoBehaviour
         GUILayout.Label("Architecture Debug", new GUIStyle(GUI.skin.label) { fontSize = 14, fontStyle = FontStyle.Bold });
         GUILayout.Space(5);
         
-        if (_raceManager != null && _raceManager.CurrentRaceConfig.IsValid)
+        if (raceManager != null && raceManager.CurrentRaceConfig.IsValid)
         {
-            RaceConfiguration config = _raceManager.CurrentRaceConfig;
+            RaceConfiguration config = raceManager.CurrentRaceConfig;
             
             GUILayout.Label($"Race: {config.RaceDistance}m");
             GUILayout.Space(10);

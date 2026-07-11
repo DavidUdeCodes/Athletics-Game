@@ -18,10 +18,19 @@ public class SettingsPanel : MonoBehaviour, IPanelUI
     private int _fixedLane = 1;
     private SprintInputMode _inputMode = SprintInputMode.Rhythm;
 
+    [SerializeField] private Button backButton;
+
     private void OnEnable()
     {
         if (canvasGroup == null)
             canvasGroup = GetComponent<CanvasGroup>();
+            
+        backButton.onClick.AddListener(() => SetActive(false));
+    }
+
+    private void OnDisable()
+    {
+        backButton.onClick.RemoveListener(() => SetActive(false));
     }
 
     public void Initialize()

@@ -276,19 +276,7 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 15647799}
   m_OnClick:
     m_PersistentCalls:
-      m_Calls:
-      - m_Target: {fileID: 531553029}
-        m_TargetAssemblyTypeName: MainMenuController, Assembly-CSharp
-        m_MethodName: OnPlayButtonPressed
-        m_Mode: 1
-        m_Arguments:
-          m_ObjectArgument: {fileID: 0}
-          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
-          m_IntArgument: 0
-          m_FloatArgument: 0
-          m_StringArgument: 
-          m_BoolArgument: 0
-        m_CallState: 2
+      m_Calls: []
 --- !u!114 &15647799
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1980,7 +1968,7 @@ Transform:
   m_GameObject: {fileID: 519674677}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -0.33108, y: 0.70622, z: 0.31283}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -2020,6 +2008,9 @@ MonoBehaviour:
   eventSelectorPanel: {fileID: 1374311679}
   settingsPanel: {fileID: 1055740587}
   raceSceneName: TrackScene
+  playButton: {fileID: 15647798}
+  eventSelectorButton: {fileID: 1177378550}
+  settingsButton: {fileID: 2017244640}
 --- !u!4 &531553030
 Transform:
   m_ObjectHideFlags: 0
@@ -3060,6 +3051,7 @@ MonoBehaviour:
   fixedLaneDropdown: {fileID: 435316956}
   fixedLaneContainer: {fileID: 1358367118}
   inputModeDropdown: {fileID: 466732032}
+  backButton: {fileID: 1584909619}
 --- !u!225 &1055740588
 CanvasGroup:
   m_ObjectHideFlags: 0
@@ -3628,19 +3620,7 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 1177378551}
   m_OnClick:
     m_PersistentCalls:
-      m_Calls:
-      - m_Target: {fileID: 531553029}
-        m_TargetAssemblyTypeName: MainMenuController, Assembly-CSharp
-        m_MethodName: OnEventSelectorButtonPressed
-        m_Mode: 1
-        m_Arguments:
-          m_ObjectArgument: {fileID: 0}
-          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
-          m_IntArgument: 0
-          m_FloatArgument: 0
-          m_StringArgument: 
-          m_BoolArgument: 0
-        m_CallState: 2
+      m_Calls: []
 --- !u!114 &1177378551
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -4135,6 +4115,7 @@ MonoBehaviour:
   eventButtonPrefab: {fileID: 9148247705926918119, guid: 34fccd92e1a3c7d47bdb3caf1d474498, type: 3}
   eventManager: {fileID: 252794116}
   menuEventSelectText: {fileID: 1743855007}
+  backButton: {fileID: 1496920770}
 --- !u!225 &1374311680
 CanvasGroup:
   m_ObjectHideFlags: 0
@@ -4354,19 +4335,7 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 1496920771}
   m_OnClick:
     m_PersistentCalls:
-      m_Calls:
-      - m_Target: {fileID: 1374311679}
-        m_TargetAssemblyTypeName: EventSelectorPanel, Assembly-CSharp
-        m_MethodName: SetActive
-        m_Mode: 6
-        m_Arguments:
-          m_ObjectArgument: {fileID: 0}
-          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
-          m_IntArgument: 0
-          m_FloatArgument: 0
-          m_StringArgument: 
-          m_BoolArgument: 0
-        m_CallState: 2
+      m_Calls: []
 --- !u!114 &1496920771
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -4630,19 +4599,7 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 1584909620}
   m_OnClick:
     m_PersistentCalls:
-      m_Calls:
-      - m_Target: {fileID: 1055740587}
-        m_TargetAssemblyTypeName: SettingsPanel, Assembly-CSharp
-        m_MethodName: SetActive
-        m_Mode: 6
-        m_Arguments:
-          m_ObjectArgument: {fileID: 0}
-          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
-          m_IntArgument: 0
-          m_FloatArgument: 0
-          m_StringArgument: 
-          m_BoolArgument: 0
-        m_CallState: 2
+      m_Calls: []
 --- !u!114 &1584909620
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -7373,19 +7330,7 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 2017244641}
   m_OnClick:
     m_PersistentCalls:
-      m_Calls:
-      - m_Target: {fileID: 531553029}
-        m_TargetAssemblyTypeName: MainMenuController, Assembly-CSharp
-        m_MethodName: OnSettingsButtonPressed
-        m_Mode: 1
-        m_Arguments:
-          m_ObjectArgument: {fileID: 0}
-          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
-          m_IntArgument: 0
-          m_FloatArgument: 0
-          m_StringArgument: 
-          m_BoolArgument: 0
-        m_CallState: 2
+      m_Calls: []
 --- !u!114 &2017244641
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -9640,7 +9585,7 @@ Transform:
   m_GameObject: {fileID: 1448660344485487933}
   serializedVersion: 2
   m_LocalRotation: {x: -0.7071068, y: -0, z: -0, w: 0.7071068}
-  m_LocalPosition: {x: 0.33108, y: -0.70622, z: -0.31283}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 100, y: 100, z: 100}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -11521,7 +11466,7 @@ Transform:
   m_GameObject: {fileID: 4843141166670496687}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0.33108, y: -0.70622, z: -0.31283}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:

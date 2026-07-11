@@ -11,9 +11,7 @@ public class SprintInputModeUIManager : MonoBehaviour
     private void Start()
     {
         if (raceManager == null)
-        {
-            raceManager = FindAnyObjectByType<RaceManager>();
-        }
+            Debug.LogError($"{gameObject.name}: RaceManager not assigned to SprintInputModeUIManager in Inspector");
 
         if (raceManager != null)
         {

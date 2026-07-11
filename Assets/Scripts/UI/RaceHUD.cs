@@ -13,17 +13,27 @@ public class RaceHUD : MonoBehaviour
     [Space]
     [Header("References")]
     [SerializeField] private RaceManager raceManager;
-    [SerializeField] private Athlete playerAthlete;
     [SerializeField] private RaceTimer raceTimer;
 
     private CanvasGroup _canvasGroup;
+    private Athlete _playerAthlete;
+
+    private Athlete PlayerAthlete
+    {
+        get
+        {
+            if (_playerAthlete == null && raceManager != null)
+                _playerAthlete = raceManager.PlayerAthlete;
+            return _playerAthlete;
+        }
+    }
 
     private void Start()
     {
         InitializeReferences();
         InitializeCanvasGroup();
         SubscribeToEvents();
-        HideHUD();
+        ShowHUD();
     }
 
     private void OnDestroy()
@@ -34,16 +44,10 @@ public class RaceHUD : MonoBehaviour
     private void InitializeReferences()
     {
         if (raceManager == null)
-            raceManager = FindAnyObjectByType<RaceManager>();
-
-        if (playerAthlete == null)
-        {
-            var athletes = FindObjectsByType<Athlete>();
-            playerAthlete = System.Array.Find(athletes, a => a.isPlayer);
-        }
+            Debug.LogError($"{gameObject.name}: RaceManager not assigned to RaceHUD in Inspector");
 
         if (raceTimer == null)
-            raceTimer = FindAnyObjectByType<RaceTimer>();
+            Debug.LogError($"{gameObject.name}: RaceTimer not assigned to RaceHUD in Inspector");
     }
 
     private void InitializeCanvasGroup()
@@ -107,10 +111,10 @@ public class RaceHUD : MonoBehaviour
 
     private void UpdateSpeed()
     {
-        if (speedDisplay == null || playerAthlete == null)
+        if (speedDisplay == null || PlayerAthlete == null)
             return;
 
-        float speed = playerAthlete.CurrentSpeed;
+        float speed = PlayerAthlete.CurrentSpeed;
         speedDisplay.text = $"{speed:F2} m/s";
     }
 

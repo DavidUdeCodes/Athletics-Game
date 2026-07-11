@@ -200,7 +200,7 @@ public class Athlete : MonoBehaviour
     {
         if (raceManager == null)
         {
-            raceManager = FindAnyObjectByType<RaceManager>();
+            Debug.LogError($"{gameObject.name}: RaceManager not assigned to Athlete in Inspector");
         }
 
         SprintInputMode selectedMode = raceManager != null ? raceManager.CurrentInputMode : SprintInputMode.Rhythm;
