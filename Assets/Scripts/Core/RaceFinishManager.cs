@@ -24,7 +24,6 @@ public class RaceFinishManager : MonoBehaviour
     [SerializeField] private ResultsScreen resultsScreen;
     [SerializeField] private RaceHUD raceHUD;
 
-    private CanvasGroup _messageCanvasGroup;
     private bool _finishSequenceActive = false;
 
     public event Action OnFinishSequenceStarted;
@@ -99,7 +98,7 @@ public class RaceFinishManager : MonoBehaviour
 
     private IEnumerator DisplayFinishedMessage()
     {
-        if (finishedMessageText == null || _messageCanvasGroup == null)
+        if (finishedMessageText == null || finishedMessageCanvasGroup == null)
             yield break;
 
         finishedMessageText.text = "FINISHED";
@@ -109,11 +108,11 @@ public class RaceFinishManager : MonoBehaviour
         {
             elapsed += Time.deltaTime;
             float t = elapsed / finishMessageDuration;
-            _messageCanvasGroup.alpha = Mathf.Clamp01(t);
+            finishedMessageCanvasGroup.alpha = Mathf.Clamp01(t);
             yield return null;
         }
 
-        _messageCanvasGroup.alpha = 1f;
+        finishedMessageCanvasGroup.alpha = 1f;
 
         yield return new WaitForSeconds(delayBeforeResults * 0.3f);
 

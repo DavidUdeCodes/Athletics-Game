@@ -1,5 +1,4 @@
 using UnityEngine;
-using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 using System.Collections.Generic;
 
@@ -133,7 +132,7 @@ public class ResultsScreen : MonoBehaviour
     private void OnPlayAgainPressed()
     {
         Time.timeScale = 1f;
-        SceneManager.LoadScene(SceneManager.GetActiveScene().name);
+        SceneTransitionManager.Instance.ReloadCurrentScene();
     }
 
     private void OnReplayPressed()
@@ -144,6 +143,6 @@ public class ResultsScreen : MonoBehaviour
     private void OnMainMenuPressed()
     {
         Time.timeScale = 1f;
-        SceneManager.LoadScene("MainMenu");
+        SceneTransitionManager.Instance.LoadScene(SceneNames.MainMenu);
     }
 }

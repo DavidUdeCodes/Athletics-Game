@@ -439,18 +439,6 @@ public class Athlete : MonoBehaviour
         _pendingStartingBonus = bonus;
     }
 
-    public void ResetForFalseStart()
-    {
-        if (_currentInputMode != null)
-        {
-            _currentInputMode.Reset();
-        }
-
-        _animationController?.ResetAnimationState();
-        _raceOfficiallyStarted = false;
-        _raceTime = 0f;
-    }
-
     private void HandleRaceConfigChanged(RaceConfiguration newConfig)
     {
         if (!isPlayer || !_raceActive) return;
@@ -461,7 +449,7 @@ public class Athlete : MonoBehaviour
 
     private void RepositionForRaceConfig(RaceConfiguration raceConfig)
     {
-        if (!raceConfig.IsValid || _movement == null)
+        if (raceConfig == null || !raceConfig.IsValid || _movement == null)
             return;
 
         int lane = isPlayer ? raceManager.PlayerLane : athleteLane;

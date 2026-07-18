@@ -1,12 +1,10 @@
 using UnityEngine;
-using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
 public class MainMenuController : MonoBehaviour
 {
     [SerializeField] private EventSelectorPanel eventSelectorPanel;
     [SerializeField] private SettingsPanel settingsPanel;
-    [SerializeField] private string raceSceneName = "TrackScene";
 
     [Header("Buttons")]
     [SerializeField] private Button playButton;
@@ -68,7 +66,7 @@ public class MainMenuController : MonoBehaviour
         EventSessionManager.Instance.SetEventConfig(config);
 
         Debug.Log($"[MainMenuController] Starting race with config: {config}");
-        SceneManager.LoadScene(raceSceneName);
+        SceneTransitionManager.Instance.LoadScene(SceneNames.TrackScene);
     }
 
     public void OnEventSelectorButtonPressed()

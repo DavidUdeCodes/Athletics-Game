@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 // Add new emotes here as content grows - no new Animator triggers needed per-emote.
 public enum EmoteType
@@ -38,6 +39,15 @@ public class AthleteAnimationController : MonoBehaviour
 
         if (animator == null)
             Debug.LogError($"No Animator found on {gameObject.name}. AthleteAnimationController cannot function.", this);
+    }
+
+    private void Start()
+    {
+        if (SceneManager.GetActiveScene().name == SceneNames.MainMenu)
+        {
+            animator.SetBool(AnimParamIDs.FlagHold, true);
+        }
+        
     }
 
     public void SetRaceState(RaceStartState state)

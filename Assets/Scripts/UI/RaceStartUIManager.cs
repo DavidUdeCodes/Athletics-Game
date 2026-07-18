@@ -42,6 +42,8 @@ public class RaceStartUIManager : MonoBehaviour
     {
         InitializeCanvasGroups();
         SubscribeToEvents();
+
+        DisplayStartMessage("On Your Marks");
     }
 
     private void OnDestroy()
@@ -58,7 +60,7 @@ public class RaceStartUIManager : MonoBehaviour
             {
                 _startMessageCanvasGroup = startMessageDisplay.gameObject.AddComponent<CanvasGroup>();
             }
-            _startMessageCanvasGroup.alpha = 0f;
+            _startMessageCanvasGroup.alpha = 1f;
         }
 
         if (reactionFeedbackDisplay != null)
@@ -90,9 +92,6 @@ public class RaceStartUIManager : MonoBehaviour
     {
         switch (newState)
         {
-            case RaceStartState.OnYourMarks:
-                DisplayStartMessage("On Your Marks");
-                break;
             case RaceStartState.GetSet:
                 DisplayStartMessage("Get Set");
                 break;

@@ -37,14 +37,22 @@ public class RaceStartController : MonoBehaviour
     private float slowStartMomentumBonus = 0.05f;
     
     [Space]
+    [Header("False Start Restart")]
+    [SerializeField] [Tooltip("Delay before reloading scene on false start (seconds)")]
+    private float falseStartRestartDelay = 2.0f;
+    
+    [Space]
     [Header("Dependencies")]
     [SerializeField] [Tooltip("Race manager for coordination and notifications")]
     private RaceManager raceManager;
+    [SerializeField] [Tooltip("Screen effects controller for visual feedback")]
+    private ScreenEffectsController screenEffects;
     
     private Athlete[] _allAthletes;
     private RaceStartState _currentStartState = RaceStartState.Idle;
     private float _reactionTimer = 0f;
     private bool _reactionTimeRecorded = false;
+    private Coroutine _raceStartSequenceCoroutine;
     
     public event Action<RaceStartState> OnStartStateChanged;
     public event Action OnFalseStart;
@@ -57,6 +65,11 @@ public class RaceStartController : MonoBehaviour
         if (raceManager == null)
         {
             Debug.LogError($"{gameObject.name}: RaceManager not assigned to RaceStartController in Inspector");
+        }
+        
+        if (screenEffects == null)
+        {
+            screenEffects = FindAnyObjectByType<ScreenEffectsController>();
         }
     }
     
@@ -77,7 +90,7 @@ public class RaceStartController : MonoBehaviour
         _reactionTimer = 0f;
         _reactionTimeRecorded = false;
         
-        StartCoroutine(RaceStartSequence());
+        _raceStartSequenceCoroutine = StartCoroutine(RaceStartSequence());
     }
     
     private IEnumerator RaceStartSequence()
@@ -106,6 +119,14 @@ public class RaceStartController : MonoBehaviour
         RaceStartEvents.RaiseRaceStateChanged(newState);
         
         NotifyAthletesOfStateChange(newState);
+        
+        if (newState == RaceStartState.Go)
+        {
+            if (screenEffects != null)
+            {
+                screenEffects.PlayGoFlash();
+            }
+        }
         
         if (newState == RaceStartState.Running)
         {
@@ -140,6 +161,12 @@ public class RaceStartController : MonoBehaviour
         if (_currentStartState != RaceStartState.GetSet)
             return;
         
+        if (_raceStartSequenceCoroutine != null)
+        {
+            StopCoroutine(_raceStartSequenceCoroutine);
+            _raceStartSequenceCoroutine = null;
+        }
+        
         StartCoroutine(FalseStartSequence());
     }
     
@@ -149,21 +176,14 @@ public class RaceStartController : MonoBehaviour
         OnFalseStart?.Invoke();
         RaceStartEvents.RaiseFalseStart();
         
-        if (_allAthletes != null)
+        if (screenEffects != null)
         {
-            foreach (Athlete athlete in _allAthletes)
-            {
-                athlete.ResetForFalseStart();
-            }
+            screenEffects.PlayFalseStartFlash();
         }
         
-        yield return new WaitForSeconds(1.0f);
+        SceneTransitionManager.Instance.ReloadCurrentScene(falseStartRestartDelay);
         
-        SetStartState(RaceStartState.Idle);
-        
-        yield return new WaitForSeconds(0.5f);
-        
-        yield return StartCoroutine(RaceStartSequence());
+        yield break;
     }
     
     public void RecordReactionTime(Athlete athlete)

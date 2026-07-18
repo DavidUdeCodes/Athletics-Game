@@ -49,7 +49,7 @@ public class ForceControlInputUI : MonoBehaviour, ISprintInputModeUI
     private CanvasGroup _qualityCanvasGroup;
     private CanvasGroup _canvasGroup;
 
-    private void Start()
+    private void Awake()
     {
         if (qualityBackground != null)
             _defaultBackgroundColor = qualityBackground.color;
