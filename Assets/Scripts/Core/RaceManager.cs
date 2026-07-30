@@ -28,6 +28,8 @@ public class RaceManager : MonoBehaviour
     private RaceTimer raceTimer;
     [SerializeField] [Tooltip("Race start controller for managing start sequence")]
     private RaceStartController raceStartController;
+    [SerializeField] [Tooltip("Starting blocks controller for spawning/removing starting blocks")]
+    private StartingBlocksController startingBlocksController;
     
     private RaceConfiguration _currentRaceConfig;
     private Dictionary<Athlete, bool> _athleteFinished = new();
@@ -200,6 +202,11 @@ public class RaceManager : MonoBehaviour
         raceTimer?.ResetTimer();
         
         Athlete[] athletes = GetAllAthletes();
+
+        // Athletes are already initialized and positioned in their lane by this
+        // point, so blocks can be spawned behind them before the start sequence begins.
+        startingBlocksController?.SpawnBlocksForAthletes(athletes);
+
         raceStartController.InitiateRaceStart(athletes);
     }
     

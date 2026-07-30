@@ -1,7 +1,12 @@
 {
   "permissions": {
     "allow": [
-      "Bash(dir Assets\\Prefabs)"
+      "Bash(dir Assets\\Prefabs)",
+      "Bash(rg 'RaceInitializer|InitializeAthleteForRace' -l 'c:\\Users\\princ\\Documents\\UnityProjects\\Athletics Game\\Assets\\Scripts')",
+      "Bash(rg -n 'RaceInitializer|InitializeAthleteForRace' 'c:\\Users\\princ\\Documents\\UnityProjects\\Athletics Game\\Assets\\Scripts')",
+      "Bash(findstr /s /n /m \"RaceInitializer\" \"Assets\\Scripts\\*.cs\")",
+      "Bash(for /r \"Assets\\Scripts\" %f in (*.cs) do @findstr /n \"RaceInitializer\" \"%f\" >nul && echo %f)",
+      "Bash(findstr /n \"RaceInitializer\" \"Assets\\Scripts\\Core\\RaceInitializer.cs\")"
     ]
   }
 }

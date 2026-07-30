@@ -1,11 +1,8 @@
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
 
-// Presentation-only. Rotates a pivot Transform in response to horizontal
-// click/touch drag. Deliberately has no knowledge of RaceManager, sprint
-// input modes, athlete movement/momentum, or any other gameplay system -
-// it only ever touches the Transform it's told to rotate.
 public class AthleteRotationController : MonoBehaviour
 {
     [Header("Target")]
@@ -19,7 +16,7 @@ public class AthleteRotationController : MonoBehaviour
     [Tooltip("Invert the horizontal drag direction.")]
     [SerializeField] private bool invertHorizontal = false;
 
-    [Tooltip("Maximum rotation speed in degrees/second, enforced both while dragging and during inertia.")]
+    [Tooltip("Maximum rotation speed in degrees/second while actively dragging.")]
     [SerializeField] private float maxAngularVelocity = 360f;
 
     [Header("Inertia")]
@@ -32,11 +29,41 @@ public class AthleteRotationController : MonoBehaviour
     [Tooltip("Angular velocity (degrees/second) below which inertia is considered stopped.")]
     [SerializeField] private float stopThreshold = 1f;
 
+    [Header("Flick Feel")]
+    [Tooltip("How far back (in seconds) to look when measuring release speed. Smaller = snappier but more sensitive to noise, larger = smoother but less responsive to a sudden flick at the very end of the drag.")]
+    [SerializeField] private float velocitySampleWindow = 0.12f;
+
+    [Tooltip("Multiplier applied to the measured release velocity. >1 makes flicks feel punchier than the raw drag speed suggested.")]
+    [SerializeField] private float flickBoost = 1.15f;
+
+    [Tooltip("Absolute cap on release velocity, applied after the flick boost. Set >= Max Angular Velocity to let flicks exceed normal drag speed.")]
+    [SerializeField] private float maxFlickAngularVelocity = 540f;
+
+    [Header("Idle Life (optional)")]
+    [Tooltip("If enabled, the character gently keeps spinning on its own after being at rest for a while, so the menu doesn't feel static.")]
+    [SerializeField] private bool useIdleSpin = false;
+
+    [Tooltip("Seconds of no interaction and no residual inertia before idle spin kicks in.")]
+    [SerializeField] private float idleSpinDelay = 4f;
+
+    [Tooltip("Idle spin speed in degrees/second.")]
+    [SerializeField] private float idleSpinSpeed = 12f;
+
+    [Tooltip("How quickly idle spin ramps in/out, in degrees/second^2-ish terms (higher = snappier ramp).")]
+    [SerializeField] private float idleSpinRampSpeed = 8f;
+
     private float _angularVelocity;
+    private float _idleSpinCurrent;
+    private float _timeSinceLastInteraction;
+
     private bool _isDragging;
     private bool _draggingWithTouch;
     private int _activeTouchId;
     private Vector2 _lastPointerPosition;
+
+    // Rolling buffer of recent (timestamp, rotationDeltaApplied) samples, used to
+    // measure release velocity over a short window instead of a single noisy frame.
+    private readonly List<(float time, float delta)> _velocitySamples = new List<(float, float)>();
 
     private void Awake()
     {
@@ -46,10 +73,17 @@ public class AthleteRotationController : MonoBehaviour
 
     private void Update()
     {
+        float dt = Time.unscaledDeltaTime > 0f ? Time.unscaledDeltaTime : Mathf.Epsilon;
+
         if (_isDragging)
-            ContinueDrag();
+        {
+            ContinueDrag(dt);
+        }
         else if (!TryBeginDrag())
-            ApplyInertia();
+        {
+            ApplyInertia(dt);
+            ApplyIdleSpin(dt);
+        }
     }
 
     private bool TryBeginDrag()
@@ -87,9 +121,14 @@ public class AthleteRotationController : MonoBehaviour
         _activeTouchId = touchId;
         _lastPointerPosition = startPosition;
         _angularVelocity = 0f;
+        _idleSpinCurrent = 0f;
+        _timeSinceLastInteraction = 0f;
+
+        _velocitySamples.Clear();
+        _velocitySamples.Add((Time.unscaledTime, 0f));
     }
 
-    private void ContinueDrag()
+    private void ContinueDrag(float dt)
     {
         Vector2 currentPosition;
         bool stillDown;
@@ -121,35 +160,96 @@ public class AthleteRotationController : MonoBehaviour
         Vector2 delta = currentPosition - _lastPointerPosition;
         _lastPointerPosition = currentPosition;
 
-        float dt = Time.deltaTime > 0f ? Time.deltaTime : Mathf.Epsilon;
-
         float rotationDelta = delta.x * dragSensitivity;
         if (invertHorizontal)
             rotationDelta = -rotationDelta;
 
-        _angularVelocity = Mathf.Clamp(rotationDelta / dt, -maxAngularVelocity, maxAngularVelocity);
-
+        // Follow the pointer 1:1 while dragging (clamped so an enormous single-frame
+        // jump - e.g. a frame hitch - can't snap the model instantly).
         float clampedRotation = Mathf.Clamp(rotationDelta, -maxAngularVelocity * dt, maxAngularVelocity * dt);
         Rotate(clampedRotation);
+
+        RecordVelocitySample(clampedRotation);
     }
 
     private void EndDrag()
     {
         _isDragging = false;
+        _timeSinceLastInteraction = 0f;
+        _angularVelocity = ComputeReleaseVelocity();
     }
 
-    private void ApplyInertia()
+    /// <summary>
+    /// Adds the most recent applied-rotation sample and trims samples older than
+    /// velocitySampleWindow, keeping the buffer small and recent.
+    /// </summary>
+    private void RecordVelocitySample(float appliedDelta)
+    {
+        float now = Time.unscaledTime;
+        _velocitySamples.Add((now, appliedDelta));
+
+        while (_velocitySamples.Count > 1 && now - _velocitySamples[0].time > velocitySampleWindow)
+            _velocitySamples.RemoveAt(0);
+    }
+
+    /// <summary>
+    /// Measures how fast the pivot was actually spinning over the last
+    /// velocitySampleWindow seconds (not just the final frame), then applies the
+    /// flick boost and caps. This is what makes a real flick feel snappy while
+    /// a slow, careful drag-then-stop doesn't launch into an unwanted spin.
+    /// </summary>
+    private float ComputeReleaseVelocity()
+    {
+        if (_velocitySamples.Count < 2)
+            return 0f;
+
+        float totalDelta = 0f;
+        for (int i = 1; i < _velocitySamples.Count; i++)
+            totalDelta += _velocitySamples[i].delta;
+
+        float timeSpan = _velocitySamples[^1].time - _velocitySamples[0].time;
+        if (timeSpan <= Mathf.Epsilon)
+            return 0f;
+
+        float releaseVelocity = (totalDelta / timeSpan) * flickBoost;
+        return Mathf.Clamp(releaseVelocity, -maxFlickAngularVelocity, maxFlickAngularVelocity);
+    }
+
+    private void ApplyInertia(float dt)
     {
         if (!useInertia || Mathf.Abs(_angularVelocity) <= stopThreshold)
         {
             _angularVelocity = 0f;
+            _timeSinceLastInteraction += dt;
             return;
         }
 
-        Rotate(_angularVelocity * Time.deltaTime);
+        Rotate(_angularVelocity * dt);
 
-        float decay = 1f - Mathf.Exp(-inertiaDamping * Time.deltaTime);
+        float decay = 1f - Mathf.Exp(-inertiaDamping * dt);
         _angularVelocity = Mathf.Lerp(_angularVelocity, 0f, decay);
+
+        _timeSinceLastInteraction = 0f;
+    }
+
+    /// <summary>
+    /// Gentle ambient spin that ramps in once the character has been sitting
+    /// still (no drag, no residual inertia) for idleSpinDelay seconds, and ramps
+    /// back out the moment the user grabs it again. Purely cosmetic "keep the
+    /// menu feeling alive" flourish - safe to leave disabled.
+    /// </summary>
+    private void ApplyIdleSpin(float dt)
+    {
+        if (!useIdleSpin)
+            return;
+
+        bool shouldIdleSpin = _timeSinceLastInteraction >= idleSpinDelay;
+        float target = shouldIdleSpin ? idleSpinSpeed : 0f;
+
+        _idleSpinCurrent = Mathf.MoveTowards(_idleSpinCurrent, target, idleSpinRampSpeed * dt);
+
+        if (Mathf.Abs(_idleSpinCurrent) > 0.001f)
+            Rotate(_idleSpinCurrent * dt);
     }
 
     private void Rotate(float degrees)
