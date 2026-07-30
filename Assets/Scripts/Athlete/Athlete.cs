@@ -25,11 +25,13 @@ public class Athlete : MonoBehaviour
     private SprintController _sprintController;
     private MomentumController _momentumController;
     private AthleteAnimationController _animationController;
+    private AISprinterController _aiSprinterController;
 
     private ISprintInputMode _currentInputMode;
     private ISprintInputModeUI _activeUI;
 
     private float _pendingStartingBonus = 0f;
+    private bool _raceSetupInjected = false;
 
     public System.Action<Athlete, float> OnRaceFinished;
     public System.Action<Athlete> OnAthleteAtRest;
@@ -56,20 +58,24 @@ public class Athlete : MonoBehaviour
         _sprintController = GetComponent<SprintController>();
         _momentumController = GetComponent<MomentumController>();
         _animationController = GetComponent<AthleteAnimationController>();
-        
-        if (_rhythmController == null)
-        {
-            Debug.LogWarning($"RhythmController not found on {gameObject.name}");
-        }
+        _aiSprinterController = GetComponent<AISprinterController>();
 
-        if (_forceControlInputMode == null)
+        if (isPlayer)
         {
-            _forceControlInputMode = gameObject.AddComponent<ForceControlInputMode>();
-        }
-        
-        if (_momentumController == null)
-        {
-            _momentumController = gameObject.AddComponent<MomentumController>();
+            if (_rhythmController == null)
+            {
+                Debug.LogWarning($"RhythmController not found on {gameObject.name}");
+            }
+
+            if (_forceControlInputMode == null)
+            {
+                _forceControlInputMode = gameObject.AddComponent<ForceControlInputMode>();
+            }
+
+            if (_momentumController == null)
+            {
+                _momentumController = gameObject.AddComponent<MomentumController>();
+            }
         }
     }
 
@@ -124,27 +130,34 @@ public class Athlete : MonoBehaviour
             _movement.OnAthleteAtRest += HandleAthleteAtRest;
         }
 
-        // Single source of truth for race-start-state animation/reset handling.
-        // Not gated by isPlayer: RaceManager.NotifyAthletesOfStateChange already
-        // calls EnterGetSetState/EnterGoState/EnterRunningState directly on every
-        // athlete (player and AI alike), so this handler only needs to cover the
-        // states RaceManager doesn't push directly - OnYourMarks, and FalseStart
-        // (which bypasses SetRaceStartState entirely and never raises
-        // OnRaceStartStateChanged in the first place).
-        if (raceManager != null)
+        // OnRaceStartStateChanged / OnFalseStart subscriptions and initial positioning
+        // are either done here (scene-placed athletes) or already done by InjectRaceSetup
+        // (dynamically spawned AI athletes). The _raceSetupInjected flag prevents double
+        // subscription in the latter case.
+        if (raceManager != null && !_raceSetupInjected)
         {
             raceManager.OnRaceStartStateChanged += HandleRaceStartStateChanged;
             raceManager.OnFalseStart += HandleFalseStartAnimation;
+            RepositionForRaceConfig(raceManager.CurrentRaceConfig);
+            _raceSetupInjected = true;
         }
 
         if (isPlayer && raceManager != null)
         {
             raceManager.OnRaceConfigChanged += HandleRaceConfigChanged;
             raceManager.OnInputModeChanged += HandleInputModeChanged;
-            RepositionForRaceConfig(raceManager.CurrentRaceConfig);
-
             SynchronizeWithCurrentRaceState();
         }
+
+        // Initialise AI controller with the race distance now that raceManager is available.
+        if (!isPlayer && _aiSprinterController != null && raceManager != null)
+        {
+            _aiSprinterController.Initialize(raceManager.RaceDistanceInMeters);
+        }
+
+        // Bring the animation state in sync for all athletes, including AI that may
+        // have been spawned after the sequence already reached OnYourMarks.
+        SynchronizeAnimationWithRaceState();
 
         if (_animationController != null)
         {
@@ -198,6 +211,8 @@ public class Athlete : MonoBehaviour
 
     private void InitializeInputMode()
     {
+        if (!isPlayer) return;
+
         if (raceManager == null)
         {
             Debug.LogError($"{gameObject.name}: RaceManager not assigned to Athlete in Inspector");
@@ -354,6 +369,58 @@ public class Athlete : MonoBehaviour
                 EnterRunningState();
                 break;
         }
+    }
+
+    /// <summary>
+    /// Syncs the Animator to the current race start state for all athletes.
+    /// Handles AI athletes spawned after the sequence already began (e.g. OnYourMarks
+    /// animation would otherwise be missed because Start() runs a frame after Instantiate).
+    /// </summary>
+    private void SynchronizeAnimationWithRaceState()
+    {
+        if (_animationController == null || raceManager == null) return;
+
+        if (raceManager.CurrentStartState == RaceStartState.OnYourMarks)
+            _animationController.SetRaceState(RaceStartState.OnYourMarks);
+    }
+
+    /// <summary>
+    /// Called by RaceManager immediately after Instantiating an AI athlete prefab so
+    /// that the athlete is fully set up before Start() runs. Safe to call before Awake
+    /// completes on other objects; all work here operates only on this athlete.
+    /// </summary>
+    public void InjectRaceSetup(RaceManager manager, RaceConfiguration config, int lane)
+    {
+        if (_raceSetupInjected) return;
+        _raceSetupInjected = true;
+
+        raceManager = manager;
+        if (!isPlayer) athleteLane = lane;
+
+        if (raceManager != null)
+        {
+            raceManager.OnRaceStartStateChanged += HandleRaceStartStateChanged;
+            raceManager.OnFalseStart += HandleFalseStartAnimation;
+        }
+
+        if (_aiSprinterController != null)
+        {
+            if (config != null) _aiSprinterController.Initialize(manager.RaceDistanceInMeters);
+        }
+
+        RepositionForRaceConfig(config);
+    }
+
+    /// <summary>Public setter so RaceManager can inject itself on dynamically spawned athletes.</summary>
+    public void SetRaceManager(RaceManager manager)
+    {
+        raceManager = manager;
+    }
+
+    /// <summary>Public setter for the lane index, used when spawning AI athletes at runtime.</summary>
+    public void SetAthleteLane(int lane)
+    {
+        athleteLane = lane;
     }
 
     // Called directly by RaceManager.NotifyAthletesOfStateChange for every athlete
@@ -548,12 +615,16 @@ public class Athlete : MonoBehaviour
 
     private void UpdateAnimationSprint()
     {
-        if (_animationController == null || _momentumController == null)
-            return;
+        if (_animationController == null) return;
 
-        // Sprint/jog is a continuous blend on speed now, not a discrete phase -
-        // no need to watch for a max-speed transition here anymore.
-        _animationController.SetNormalizedSpeed(_momentumController.CurrentMomentum);
+        if (_momentumController != null)
+        {
+            _animationController.SetNormalizedSpeed(_momentumController.CurrentMomentum);
+        }
+        else if (_aiSprinterController != null)
+        {
+            _animationController.SetNormalizedSpeed(_aiSprinterController.NormalizedSpeed);
+        }
     }
 
     private void HandleAthleteFinished(Athlete athlete, int finishOrder, float raceTime)

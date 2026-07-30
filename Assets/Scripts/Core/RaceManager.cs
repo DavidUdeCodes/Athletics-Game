@@ -30,7 +30,16 @@ public class RaceManager : MonoBehaviour
     private RaceStartController raceStartController;
     [SerializeField] [Tooltip("Starting blocks controller for spawning/removing starting blocks")]
     private StartingBlocksController startingBlocksController;
-    
+
+    [Space]
+    [Header("AI Athletes")]
+    [SerializeField] [Tooltip("Prefab used for every AI runner. Must have Athlete, AthleteMovement, SplineMovement, AISprinterController, and AthleteAnimationController.")]
+    private GameObject aiAthletePrefab;
+    [SerializeField] [Tooltip("One profile per AI runner. Each profile sets the athlete's name, nationality, and target finish time.")]
+    private AIAthleteProfile[] aiProfiles;
+
+    private readonly List<GameObject> _spawnedAIAthletes = new();
+
     private RaceConfiguration _currentRaceConfig;
     private Dictionary<Athlete, bool> _athleteFinished = new();
     private Dictionary<Athlete, bool> _athleteAtRest = new();
@@ -188,19 +197,23 @@ public class RaceManager : MonoBehaviour
     public void BeginRaceStart()
     {
         if (raceStartController == null)
-        return;
-    
+            return;
+
         _athleteFinished.Clear();
         _athleteAtRest.Clear();
         _athleteFinishOrder.Clear();
         _athleteFinishTimes.Clear();
         _finishCounter = 0;
         _playerHasFinished = false;
-        _playerAthlete = null;          // <-- add this
-        _cachedAllAthletes = null;      // <-- also this, since GetAllAthletes() caches too and has the same stale-reference risk
-        
+        _playerAthlete = null;
+        _cachedAllAthletes = null;
+
         raceTimer?.ResetTimer();
-        
+
+        // Destroy AI athletes left over from any previous race before spawning fresh ones.
+        DestroySpawnedAIAthletes();
+        SpawnAIAthletes();
+
         Athlete[] athletes = GetAllAthletes();
 
         // Athletes are already initialized and positioned in their lane by this
@@ -208,6 +221,69 @@ public class RaceManager : MonoBehaviour
         startingBlocksController?.SpawnBlocksForAthletes(athletes);
 
         raceStartController.InitiateRaceStart(athletes);
+    }
+
+    private void SpawnAIAthletes()
+    {
+        if (aiAthletePrefab == null || aiProfiles == null || aiProfiles.Length == 0)
+            return;
+
+        int[] availableLanes = GetAvailableLanes();
+
+        for (int i = 0; i < Mathf.Min(aiProfiles.Length, availableLanes.Length); i++)
+        {
+            AIAthleteProfile profile = aiProfiles[i];
+            if (profile == null) continue;
+
+            int lane = availableLanes[i];
+
+            GameObject go = Instantiate(aiAthletePrefab);
+            go.name = $"AI_{profile.athleteName}";
+
+            Athlete aiAthlete = go.GetComponent<Athlete>();
+            if (aiAthlete == null)
+            {
+                Debug.LogError($"[RaceManager] AI prefab '{aiAthletePrefab.name}' is missing an Athlete component.");
+                Destroy(go);
+                continue;
+            }
+
+            AISprinterController aiController = go.GetComponent<AISprinterController>();
+            if (aiController != null)
+                aiController.SetProfile(profile);
+
+            // Override the display name with the profile name so results are correct.
+            aiAthlete.athleteName = profile.athleteName;
+
+            // InjectRaceSetup subscribes to RaceManager events, sets the lane,
+            // initialises the AI controller, and positions the athlete on the spline —
+            // all synchronously, before Start() has a chance to run.
+            aiAthlete.InjectRaceSetup(this, _currentRaceConfig, lane);
+
+            _spawnedAIAthletes.Add(go);
+        }
+    }
+
+    private void DestroySpawnedAIAthletes()
+    {
+        foreach (GameObject go in _spawnedAIAthletes)
+        {
+            if (go != null)
+                Destroy(go);
+        }
+        _spawnedAIAthletes.Clear();
+    }
+
+    /// <summary>Returns all lane indices not currently occupied by the player.</summary>
+    private int[] GetAvailableLanes()
+    {
+        var lanes = new List<int>();
+        for (int i = 1; i <= 8; i++)
+        {
+            if (i != playerLane)
+                lanes.Add(i);
+        }
+        return lanes.ToArray();
     }
     
     public void HandleFalseStart(Athlete athlete)

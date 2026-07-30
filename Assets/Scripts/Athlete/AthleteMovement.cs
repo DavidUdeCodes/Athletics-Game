@@ -16,6 +16,7 @@ public class AthleteMovement : MonoBehaviour
     private SplineMovement _splineMovement;
     private AthleteInput _athleteInput;
     private RhythmInputMode _rhythmController;
+    private AISprinterController _aiController;
     private float _currentSpeed = 0f;
     private bool _active = false;
     private bool _isDecelerating = false;
@@ -32,6 +33,7 @@ public class AthleteMovement : MonoBehaviour
         _splineMovement = GetComponent<SplineMovement>();
         _athleteInput = GetComponent<AthleteInput>();
         _rhythmController = GetComponent<RhythmInputMode>();
+        _aiController = GetComponent<AISprinterController>();
     }
 
     public void SetStatMultipliers(float topSpeedMult, float accelerationMult)
@@ -73,7 +75,9 @@ public class AthleteMovement : MonoBehaviour
         if (_splineMovement != null)
             _splineMovement.StartMovement();
 
-        if (sprintController != null)
+        if (_aiController != null)
+            _aiController.StartSprinting();
+        else if (sprintController != null)
             sprintController.StartSprinting();
 
         if (_rhythmController != null)
@@ -95,7 +99,9 @@ public class AthleteMovement : MonoBehaviour
             rhythmMode.StopRhythm();
         }
 
-        if (sprintController != null)
+        if (_aiController != null)
+            _aiController.StopSprinting();
+        else if (sprintController != null)
             sprintController.StopSprinting();
     }
 
@@ -117,7 +123,9 @@ public class AthleteMovement : MonoBehaviour
         if (_splineMovement != null)
             _splineMovement.StopMovement();
 
-        if (sprintController != null)
+        if (_aiController != null)
+            _aiController.StopSprinting();
+        else if (sprintController != null)
             sprintController.StopSprinting();
 
         ISprintInputMode currentMode = _athleteInput?.GetCurrentMode();
@@ -137,7 +145,11 @@ public class AthleteMovement : MonoBehaviour
         }
         else
         {
-            if (sprintController != null)
+            if (_aiController != null)
+            {
+                _currentSpeed = _aiController.CurrentSpeed;
+            }
+            else if (sprintController != null)
             {
                 _currentSpeed = sprintController.CurrentSpeed;
 
