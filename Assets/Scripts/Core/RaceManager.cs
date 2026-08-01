@@ -35,8 +35,15 @@ public class RaceManager : MonoBehaviour
     [Header("AI Athletes")]
     [SerializeField] [Tooltip("Prefab used for every AI runner. Must have Athlete, AthleteMovement, SplineMovement, AISprinterController, and AthleteAnimationController.")]
     private GameObject aiAthletePrefab;
-    [SerializeField] [Tooltip("One profile per AI runner. Each profile sets the athlete's name, nationality, and target finish time.")]
+    [SerializeField] [Tooltip("One profile per AI runner. Each profile defines the runner's name and nationality.")]
     private AIAthleteProfile[] aiProfiles;
+
+    [Space]
+    [Header("AI Difficulty")]
+    [SerializeField] [Tooltip("Timing ranges per distance used to generate AI target finish times.")]
+    private RaceDifficultyConfig difficultyConfig;
+    [SerializeField] [Range(0f, 1f)] [Tooltip("0 = easiest (slowest AI), 1 = hardest (fastest AI).")]
+    private float difficulty = 0.5f;
 
     private readonly List<GameObject> _spawnedAIAthletes = new();
 
@@ -250,7 +257,16 @@ public class RaceManager : MonoBehaviour
 
             AISprinterController aiController = go.GetComponent<AISprinterController>();
             if (aiController != null)
-                aiController.SetProfile(profile);
+            {
+                if (difficultyConfig != null)
+                {
+                    aiController.SetTargetFinishTime(difficultyConfig.GetTargetTime(raceDistance, difficulty));
+                }
+                else
+                {
+                    Debug.LogWarning("[RaceManager] No RaceDifficultyConfig assigned. AI target times will use the inspector default.");
+                }
+            }
 
             // Override the display name with the profile name so results are correct.
             aiAthlete.athleteName = profile.athleteName;

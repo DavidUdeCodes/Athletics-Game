@@ -40,6 +40,7 @@ public class Athlete : MonoBehaviour
     private bool _raceActive = false;
     private bool _raceOfficiallyStarted = false;
     private bool _hasFinishedRace = false;
+    private float _finishPeakSpeed = 1f;
 
     public float CurrentDistance => _movement != null ? _movement.DistanceTravelled : 0f;
 
@@ -556,6 +557,11 @@ public class Athlete : MonoBehaviour
         if (!_raceActive || _hasFinishedRace) return;
         
         _hasFinishedRace = true;
+        
+        // Capture speed at the finish line so the animation can track deceleration.
+        _finishPeakSpeed = _movement != null && _movement.CurrentSpeed > 0.01f
+            ? _movement.CurrentSpeed
+            : 1f;
 
         _movement.FinishRace();
 
@@ -616,6 +622,15 @@ public class Athlete : MonoBehaviour
     private void UpdateAnimationSprint()
     {
         if (_animationController == null) return;
+
+        // After crossing the finish line, drive animation directly from actual
+        // movement speed so the deceleration is reflected accurately.
+        if (_hasFinishedRace && _movement != null)
+        {
+            float normalized = Mathf.Clamp01(_movement.CurrentSpeed / _finishPeakSpeed);
+            _animationController.SetNormalizedSpeed(normalized);
+            return;
+        }
 
         if (_momentumController != null)
         {

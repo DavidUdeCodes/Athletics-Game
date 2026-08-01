@@ -101,12 +101,10 @@ public class RaceStartController : MonoBehaviour
         SetStartState(RaceStartState.GetSet);
         yield return new WaitForSeconds(UnityEngine.Random.Range(minGetSetDelay, maxGetSetDelay));
         
-        SetStartState(RaceStartState.Go);
-        
         _reactionTimer = 0f;
         _reactionTimeRecorded = false;
         
-        yield return new WaitForSeconds(5f);
+        SetStartState(RaceStartState.Go);
     }
     
     private void SetStartState(RaceStartState newState)
@@ -126,12 +124,18 @@ public class RaceStartController : MonoBehaviour
             {
                 screenEffects.PlayGoFlash();
             }
-        }
-        
-        if (newState == RaceStartState.Running)
-        {
-            _reactionTimeRecorded = false;
+            
+            // Race officially starts at GO — timer begins and AI athletes run immediately.
             OnRaceOfficiallyStarted?.Invoke();
+            
+            if (_allAthletes != null)
+            {
+                foreach (Athlete athlete in _allAthletes)
+                {
+                    if (!athlete.isPlayer)
+                        athlete.EnterRunningState();
+                }
+            }
         }
     }
     
@@ -205,7 +209,13 @@ public class RaceStartController : MonoBehaviour
         
         ApplyStartingVelocityBonus(athlete, quality);
         
-        SetStartState(RaceStartState.Running);
+        // Start only the player — race and AI are already running since GO.
+        athlete.EnterRunningState();
+        
+        // Update state tracking without re-notifying athletes.
+        _currentStartState = RaceStartState.Running;
+        OnStartStateChanged?.Invoke(RaceStartState.Running);
+        RaceStartEvents.RaiseRaceStateChanged(RaceStartState.Running);
     }
     
     private ReactionQuality DetermineReactionQuality(float reactionTime)

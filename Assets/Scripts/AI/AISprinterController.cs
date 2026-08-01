@@ -12,10 +12,10 @@ using UnityEngine;
 /// </summary>
 public class AISprinterController : MonoBehaviour
 {
-    [Header("AI Profile")]
+    [Header("AI Timing")]
     [SerializeField]
-    [Tooltip("Profile that defines this runner's identity and target finish time")]
-    private AIAthleteProfile _profile;
+    [Tooltip("Target finish time in seconds. Set at runtime by RaceManager via SetTargetFinishTime.")]
+    private float _targetFinishTime = 10.82f;
 
     [Header("Pacing")]
     [SerializeField]
@@ -51,8 +51,6 @@ public class AISprinterController : MonoBehaviour
     /// <summary>0-1 normalised speed for driving the Animator blend tree.</summary>
     public float NormalizedSpeed { get; private set; }
 
-    public AIAthleteProfile Profile => _profile;
-
     // ── Unity lifecycle ───────────────────────────────────────────────────────
 
     private void Awake()
@@ -62,10 +60,13 @@ public class AISprinterController : MonoBehaviour
 
     // ── Public API ────────────────────────────────────────────────────────────
 
-    /// <summary>Assign a profile at runtime (used when RaceManager spawns AI athletes).</summary>
-    public void SetProfile(AIAthleteProfile profile)
+    /// <summary>
+    /// Set the target finish time for this runner. Called by RaceManager at spawn time
+    /// based on the current difficulty and RaceDifficultyConfig.
+    /// </summary>
+    public void SetTargetFinishTime(float time)
     {
-        _profile = profile;
+        _targetFinishTime = Mathf.Max(1f, time);
     }
 
     /// <summary>
@@ -83,15 +84,15 @@ public class AISprinterController : MonoBehaviour
     /// </summary>
     public void StartSprinting()
     {
-        if (_profile == null)
+        if (_targetFinishTime <= 0f)
         {
-            Debug.LogWarning($"[AISprinterController] No AIAthleteProfile assigned on {gameObject.name}. " +
-                             "Assign one in the Inspector or via SetProfile().");
+            Debug.LogWarning($"[AISprinterController] Target finish time is not set on {gameObject.name}. " +
+                             "Call SetTargetFinishTime() before StartSprinting().");
             return;
         }
 
         float variation        = Random.Range(-_raceVariation, _raceVariation);
-        _effectiveTargetTime   = _profile.targetFinishTime * (1f + variation);
+        _effectiveTargetTime   = _targetFinishTime * (1f + variation);
 
         float curveAvg         = ComputeCurveAverage(_pacingCurve);
         _adjustedAvgSpeed      = curveAvg > 0f
