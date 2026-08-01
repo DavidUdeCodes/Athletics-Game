@@ -1,0 +1,330 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1 &7793497461070399506
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 8392690352106636570}
+  - component: {fileID: 865166286994830952}
+  - component: {fileID: 3199641764880708438}
+  - component: {fileID: 1528665857923323527}
+  - component: {fileID: 3922667385117930991}
+  - component: {fileID: 4551338495196094195}
+  - component: {fileID: 7248103990190520541}
+  - component: {fileID: 4426523089802147028}
+  - component: {fileID: 8284581890925019780}
+  - component: {fileID: 6755469415690415836}
+  m_Layer: 0
+  m_Name: Athlete
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &8392690352106636570
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7793497461070399506}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: -0.7071068, z: 0, w: 0.7071068}
+  m_LocalPosition: {x: -41.563, y: 0.39, z: 36.558}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 5067969558818425208}
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: -90, z: 0}
+--- !u!114 &865166286994830952
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7793497461070399506}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ce928ee1d964c414ebfba23fb4917396, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: '::'
+  stats: {fileID: 11400000, guid: 45f18257b8c6dc54bb55572135db72f6, type: 2}
+  athleteName: main Athlete
+  isPlayer: 1
+  athleteLane: 1
+  rhythmInputUI: {fileID: 0}
+  forceControlInputUI: {fileID: 0}
+  raceManager: {fileID: 0}
+--- !u!114 &3199641764880708438
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7793497461070399506}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7673b3c172b0349458458b5cd5c277ba, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AthleteAnimationController
+  animator: {fileID: 3413122176078818959}
+--- !u!114 &1528665857923323527
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7793497461070399506}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 88b7deaf6bded394ab96896306890645, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AthleteMovement
+  sprintController: {fileID: 4426523089802147028}
+  postFinishDecelerationRate: 5
+--- !u!114 &3922667385117930991
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7793497461070399506}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6fa15cedda9f8104e8db845591e4237d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SplineMovement
+--- !u!114 &4551338495196094195
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7793497461070399506}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6ce758b6d7e436548b0ef248c336a288, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AthleteInput
+  inputActionAsset: {fileID: -944628639613478452, guid: bf37d53cc5ffdc843a2ff5b63a2d97be, type: 3}
+--- !u!114 &7248103990190520541
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7793497461070399506}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bd0eb7faa1bf9fd40924ed224a1e8ce4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::RhythmController
+  baseRhythmSpeed: 2
+  rhythmSpeedMultiplier: 0.5
+  minRhythmSpeed: 0.5
+  maxRhythmSpeed: 2
+  leftZoneMin: 0
+  leftZoneMax: 0
+  rightZoneMin: 1
+  rightZoneMax: 1
+  perfectZoneSize: 0.05
+  goodZoneSize: 0.15
+  fairZoneSize: 0.3
+--- !u!114 &4426523089802147028
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7793497461070399506}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a399f3fe06efebb49a3cf48e11399d68, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SprintController
+  baseTopSpeed: 10
+--- !u!114 &8284581890925019780
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7793497461070399506}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3b8bcaacff4dea7419f7b09a4eddbac4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ForceControlInputMode
+  baseGravity: 1.5
+  gravitySpeedScaling: 0.3
+  impulseStrengthCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0.8
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 1.1982809
+      value: 0.30443954
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  baseTargetZoneSize: 0.2
+  targetShrinkingRate: 0.05
+  minTargetZoneSize: 0.08
+  maxTargetZoneSize: 0.3
+  baseTargetZoneCenter: 0.75
+  perfectZoneSize: 0.05
+  goodZoneSize: 0.1
+  fairZoneSize: 0.15
+  externalFairZoneSize: 0.05
+--- !u!114 &6755469415690415836
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7793497461070399506}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 770d80305af6ca749a28449c1193b1e3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MomentumController
+  perfectMomentumGain: 0.8
+  goodMomentumGain: 0.2
+  fairMomentumGain: 0.1
+  missMomentumPenalty: -0.05
+  baseDecayRate: 0.1
+  momentumToSpeedCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 1
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+--- !u!1001 &8435752782711710539
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 8392690352106636570}
+    m_Modifications:
+    - target: {fileID: 323419439801817922, guid: d02611e35f15b684fa80555e5d4d4b1b, type: 3}
+      propertyPath: m_Name
+      value: AthleteModel
+      objectReference: {fileID: 0}
+    - target: {fileID: 3694318389533534771, guid: d02611e35f15b684fa80555e5d4d4b1b, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3694318389533534771, guid: d02611e35f15b684fa80555e5d4d4b1b, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3694318389533534771, guid: d02611e35f15b684fa80555e5d4d4b1b, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3694318389533534771, guid: d02611e35f15b684fa80555e5d4d4b1b, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 3694318389533534771, guid: d02611e35f15b684fa80555e5d4d4b1b, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3694318389533534771, guid: d02611e35f15b684fa80555e5d4d4b1b, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3694318389533534771, guid: d02611e35f15b684fa80555e5d4d4b1b, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3694318389533534771, guid: d02611e35f15b684fa80555e5d4d4b1b, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3694318389533534771, guid: d02611e35f15b684fa80555e5d4d4b1b, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3694318389533534771, guid: d02611e35f15b684fa80555e5d4d4b1b, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 323419439801817922, guid: d02611e35f15b684fa80555e5d4d4b1b, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 3413122176078818959}
+  m_SourcePrefab: {fileID: 100100000, guid: d02611e35f15b684fa80555e5d4d4b1b, type: 3}
+--- !u!4 &5067969558818425208 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 3694318389533534771, guid: d02611e35f15b684fa80555e5d4d4b1b, type: 3}
+  m_PrefabInstance: {fileID: 8435752782711710539}
+  m_PrefabAsset: {fileID: 0}
+--- !u!1 &8173140736265205769 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 323419439801817922, guid: d02611e35f15b684fa80555e5d4d4b1b, type: 3}
+  m_PrefabInstance: {fileID: 8435752782711710539}
+  m_PrefabAsset: {fileID: 0}
+--- !u!95 &3413122176078818959
+Animator:
+  serializedVersion: 7
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8173140736265205769}
+  m_Enabled: 1
+  m_Avatar: {fileID: 0}
+  m_Controller: {fileID: 9100000, guid: 64c82fbf4b7501f45b8955278134ae87, type: 2}
+  m_CullingMode: 0
+  m_UpdateMode: 0
+  m_ApplyRootMotion: 0
+  m_LinearVelocityBlending: 0
+  m_StabilizeFeet: 0
+  m_AnimatePhysics: 0
+  m_WarningMessage: 
+  m_HasTransformHierarchy: 1
+  m_AllowConstantClipSamplingOptimization: 1
+  m_KeepAnimatorStateOnDisable: 0
+  m_WriteDefaultValuesOnDisable: 0

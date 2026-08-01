@@ -5,12 +5,12 @@ using UnityEngine;
 // references gameplay systems (RaceManager, sprint input, movement, etc.).
 //
 // Currently only owns rotation. As menu character features grow
-// (appearance/customization, model swapping, preview camera controls, idle
+// (appearance/customization, model swapping, showcase camera controls, idle
 // animation), add one focused controller per concern and wire it up here
 // rather than growing this class or any single controller.
-public class AthletePreviewController : MonoBehaviour
+public class AthleteShowcaseController : MonoBehaviour
 {
-    [Header("Preview Systems")]
+    [Header("Showcase Systems")]
     [SerializeField] private AthleteRotationController rotationController;
 
     private void Awake()

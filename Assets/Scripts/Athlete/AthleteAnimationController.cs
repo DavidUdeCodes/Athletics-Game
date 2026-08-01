@@ -35,7 +35,7 @@ public class AthleteAnimationController : MonoBehaviour
     private void Awake()
     {
         if (animator == null)
-            animator = GetComponent<Animator>();
+            animator = GetComponentInChildren<Animator>();
 
         if (animator == null)
             Debug.LogError($"No Animator found on {gameObject.name}. AthleteAnimationController cannot function.", this);
