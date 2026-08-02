@@ -14,14 +14,14 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::RaceDifficultyConfig
   _eventRanges:
   - distance: 100
-    eliteTime: 9.6
-    easyTime: 12.5
+    eliteTime: 9.5
+    easyTime: 13
     athleteSpread: 0.4
   - distance: 200
-    eliteTime: 19.9
+    eliteTime: 19.2
     easyTime: 26
-    athleteSpread: 0.6
+    athleteSpread: 1.6
   - distance: 400
-    eliteTime: 43.5
+    eliteTime: 43
     easyTime: 58
-    athleteSpread: 1.2
+    athleteSpread: 3.2

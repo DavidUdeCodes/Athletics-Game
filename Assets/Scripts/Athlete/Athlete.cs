@@ -8,6 +8,7 @@ public class Athlete : MonoBehaviour
 
     [Header("Identity")]
     public string athleteName = "Athlete";
+    public string nationality = "";
     public bool isPlayer = true;
     [SerializeField] private int athleteLane = 1;
 
@@ -396,7 +397,8 @@ public class Athlete : MonoBehaviour
         _raceSetupInjected = true;
 
         raceManager = manager;
-        if (!isPlayer) athleteLane = lane;
+        if (!isPlayer)
+            athleteLane = lane;
 
         if (raceManager != null)
         {
@@ -410,6 +412,16 @@ public class Athlete : MonoBehaviour
         }
 
         RepositionForRaceConfig(config);
+    }
+
+    /// <summary>
+    /// Injects the player-specific UI references after instantiation.
+    /// Must be called before Start() runs (i.e. in the same frame as Instantiate).
+    /// </summary>
+    public void InjectPlayerUI(RhythmInputUI rhythmUI, ForceControlInputUI forceUI)
+    {
+        rhythmInputUI = rhythmUI;
+        forceControlInputUI = forceUI;
     }
 
     /// <summary>Public setter so RaceManager can inject itself on dynamically spawned athletes.</summary>

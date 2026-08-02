@@ -1,0 +1,97 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f8566605e1f49c0499dc9bfdfeb02c38, type: 3}
+  m_Name: AthleteIdentityGenerator
+  m_EditorClassIdentifier: Assembly-CSharp::AthleteIdentityGenerator
+  firstNames:
+  - Marcus
+  - James
+  - Andre
+  - Yohan
+  - Usain
+  - Noah
+  - Christian
+  - Adam
+  - Trayvon
+  - Ferdinand
+  - Akani
+  - Ronnie
+  - Justin
+  - Asafa
+  - Tyson
+  - Oblique
+  - Jereem
+  - Michael
+  - Steve
+  - Ato
+  - Daniel
+  - Marcell
+  - Frederick
+  - Letsile
+  - Erriyon
+  - Kenny
+  - Zharnel
+  - Reece
+  lastNames:
+  - Thompson
+  - Blake
+  - De Grasse
+  - Blake
+  - Bolt
+  - Lyles
+  - Coleman
+  - Gemili
+  - Bromell
+  - Omanyala
+  - Simbine
+  - Baker
+  - Gatlin
+  - Powell
+  - Gay
+  - Seville
+  - Richards
+  - Johnson
+  - Lewis
+  - Boldon
+  - Rudisha
+  - Jacobs
+  - Kerley
+  - Tebogo
+  - Knighton
+  - Bednarek
+  - Hughes
+  - Walsh
+  nationalities:
+  - USA
+  - JAM
+  - CAN
+  - GBR
+  - RSA
+  - NGR
+  - TTO
+  - FRA
+  - GER
+  - ITA
+  - BRA
+  - AUS
+  - JPN
+  - CHN
+  - BOT
+  - GHA
+  - BAH
+  - CUB
+  - PAN
+  - DOM
+  - UGA
+  - KEN
+  - ETH
+  - ZIM

@@ -30,13 +30,25 @@ public class RaceManager : MonoBehaviour
     private RaceStartController raceStartController;
     [SerializeField] [Tooltip("Starting blocks controller for spawning/removing starting blocks")]
     private StartingBlocksController startingBlocksController;
+    [SerializeField] private RaceCameraController cameraController;
+
+    [Space]
+    [Header("Player Athlete")]
+    [SerializeField] [Tooltip("Prefab for the player athlete. Must have Athlete (isPlayer=true), AthleteMovement, SplineMovement, SprintController, MomentumController, and AthleteAnimationController.")]
+    private GameObject playerAthletePrefab;
+    [SerializeField] [Tooltip("Rhythm input UI assigned to the player athlete at runtime.")]
+    private RhythmInputUI playerRhythmInputUI;
+    [SerializeField] [Tooltip("Force control input UI assigned to the player athlete at runtime.")]
+    private ForceControlInputUI playerForceControlInputUI;
 
     [Space]
     [Header("AI Athletes")]
     [SerializeField] [Tooltip("Prefab used for every AI runner. Must have Athlete, AthleteMovement, SplineMovement, AISprinterController, and AthleteAnimationController.")]
     private GameObject aiAthletePrefab;
-    [SerializeField] [Tooltip("One profile per AI runner. Each profile defines the runner's name and nationality.")]
-    private AIAthleteProfile[] aiProfiles;
+    [SerializeField] [Range(1, 7)] [Tooltip("Number of AI athletes to spawn (max 7 so the player fits in one of 8 lanes).")]
+    private int aiCount = 7;
+    [SerializeField] [Tooltip("Generates random names and nationalities for AI athletes each race.")]
+    private AthleteIdentityGenerator identityGenerator;
 
     [Space]
     [Header("AI Difficulty")]
@@ -46,6 +58,7 @@ public class RaceManager : MonoBehaviour
     private float difficulty = 0.5f;
 
     private readonly List<GameObject> _spawnedAIAthletes = new();
+    private GameObject _spawnedPlayerAthlete;
 
     private RaceConfiguration _currentRaceConfig;
     private Dictionary<Athlete, bool> _athleteFinished = new();
@@ -217,14 +230,19 @@ public class RaceManager : MonoBehaviour
 
         raceTimer?.ResetTimer();
 
-        // Destroy AI athletes left over from any previous race before spawning fresh ones.
-        DestroySpawnedAIAthletes();
+        // Destroy any previously spawned athletes before spawning fresh ones.
+        DestroySpawnedAthletes();
+
+        // Spawn player first so their position is known before blocks are placed.
+        SpawnPlayerAthlete();
+
+        // Spawn AI after the player is positioned.
         SpawnAIAthletes();
 
         Athlete[] athletes = GetAllAthletes();
 
-        // Athletes are already initialized and positioned in their lane by this
-        // point, so blocks can be spawned behind them before the start sequence begins.
+        // All athletes are now initialized and positioned in their lanes — safe to
+        // spawn starting blocks using their actual world transforms.
         startingBlocksController?.SpawnBlocksForAthletes(athletes);
 
         raceStartController.InitiateRaceStart(athletes);
@@ -232,20 +250,17 @@ public class RaceManager : MonoBehaviour
 
     private void SpawnAIAthletes()
     {
-        if (aiAthletePrefab == null || aiProfiles == null || aiProfiles.Length == 0)
+        if (aiAthletePrefab == null)
             return;
 
         int[] availableLanes = GetAvailableLanes();
+        int count = Mathf.Min(aiCount, availableLanes.Length);
 
-        for (int i = 0; i < Mathf.Min(aiProfiles.Length, availableLanes.Length); i++)
+        for (int i = 0; i < count; i++)
         {
-            AIAthleteProfile profile = aiProfiles[i];
-            if (profile == null) continue;
-
             int lane = availableLanes[i];
 
             GameObject go = Instantiate(aiAthletePrefab);
-            go.name = $"AI_{profile.athleteName}";
 
             Athlete aiAthlete = go.GetComponent<Athlete>();
             if (aiAthlete == null)
@@ -254,6 +269,16 @@ public class RaceManager : MonoBehaviour
                 Destroy(go);
                 continue;
             }
+
+            // Assign a generated identity (name + nationality) for this runner.
+            if (identityGenerator != null)
+            {
+                AthleteIdentity identity = identityGenerator.Generate();
+                aiAthlete.athleteName = identity.Name;
+                aiAthlete.nationality = identity.Nationality;
+            }
+
+            go.name = $"AI_{aiAthlete.athleteName}";
 
             AISprinterController aiController = go.GetComponent<AISprinterController>();
             if (aiController != null)
@@ -268,20 +293,52 @@ public class RaceManager : MonoBehaviour
                 }
             }
 
-            // Override the display name with the profile name so results are correct.
-            aiAthlete.athleteName = profile.athleteName;
-
             // InjectRaceSetup subscribes to RaceManager events, sets the lane,
-            // initialises the AI controller, and positions the athlete on the spline —
-            // all synchronously, before Start() has a chance to run.
+            // and positions the athlete on the spline — synchronously, before Start() runs.
             aiAthlete.InjectRaceSetup(this, _currentRaceConfig, lane);
 
             _spawnedAIAthletes.Add(go);
         }
     }
 
-    private void DestroySpawnedAIAthletes()
+    private void SpawnPlayerAthlete()
     {
+        if (playerAthletePrefab == null)
+        {
+            Debug.LogError("[RaceManager] playerAthletePrefab is not assigned. Player cannot be spawned.");
+            return;
+        }
+
+        GameObject go = Instantiate(playerAthletePrefab);
+        go.name = "Player";
+
+        Athlete player = go.GetComponent<Athlete>();
+        if (player == null)
+        {
+            Debug.LogError("[RaceManager] playerAthletePrefab is missing an Athlete component.");
+            Destroy(go);
+            return;
+        }
+
+        // Wire up player-specific UI before Start() runs.
+        player.InjectPlayerUI(playerRhythmInputUI, playerForceControlInputUI);
+
+        // InjectRaceSetup positions the athlete and subscribes to events — must
+        // happen before Start() so the _raceSetupInjected flag is set correctly.
+        player.InjectRaceSetup(this, _currentRaceConfig, playerLane);
+
+        _spawnedPlayerAthlete = go;
+        cameraController.FollowAthlete(_spawnedPlayerAthlete.GetComponent<Athlete>().transform);
+    }
+
+    private void DestroySpawnedAthletes()
+    {
+        if (_spawnedPlayerAthlete != null)
+        {
+            Destroy(_spawnedPlayerAthlete);
+            _spawnedPlayerAthlete = null;
+        }
+
         foreach (GameObject go in _spawnedAIAthletes)
         {
             if (go != null)
@@ -357,7 +414,9 @@ public class RaceManager : MonoBehaviour
             if (athlete.isPlayer)
             {
                 _playerHasFinished = true;
-                raceTimer?.StopTimer();
+                // Do NOT stop the master timer here — AI athletes still need it
+                // to record their own finish times. The HUD freezes its own display
+                // locally. The timer is stopped once all athletes are at rest.
                 OnPlayerFinished?.Invoke(athlete);
             }
             
@@ -395,6 +454,7 @@ public class RaceManager : MonoBehaviour
         }
         
         _raceFinished = true;
+        raceTimer?.StopTimer();
         OnRaceFinished?.Invoke();
         Debug.Log("Race finished - all athletes at rest");
     }
@@ -438,7 +498,7 @@ public class RaceManager : MonoBehaviour
             var result = new RaceResult(
                 placement,
                 athlete.athleteName,
-                "Unknown",
+                athlete.nationality,
                 finishTime,
                 athlete.isPlayer,
                 athlete

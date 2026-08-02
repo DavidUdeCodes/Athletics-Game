@@ -11222,6 +11222,18 @@ PrefabInstance:
       propertyPath: rotationPivot
       value: 
       objectReference: {fileID: 1291833504}
+    - target: {fileID: 1108950616687602879, guid: da65aec3c3e292e4abbc1ad0a5495ab3, type: 3}
+      propertyPath: dragSensitivity
+      value: 0.5
+      objectReference: {fileID: 0}
+    - target: {fileID: 1108950616687602879, guid: da65aec3c3e292e4abbc1ad0a5495ab3, type: 3}
+      propertyPath: maxAngularVelocity
+      value: 720
+      objectReference: {fileID: 0}
+    - target: {fileID: 1108950616687602879, guid: da65aec3c3e292e4abbc1ad0a5495ab3, type: 3}
+      propertyPath: maxFlickAngularVelocity
+      value: 720
+      objectReference: {fileID: 0}
     - target: {fileID: 2251411505397607889, guid: da65aec3c3e292e4abbc1ad0a5495ab3, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0

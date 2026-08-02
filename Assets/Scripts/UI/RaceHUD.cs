@@ -10,6 +10,11 @@ public class RaceHUD : MonoBehaviour
     [Header("Speed Display")]
     [SerializeField] private TextMeshProUGUI speedDisplay;
 
+    [Header("Position Display")]
+    [SerializeField] private TextMeshProUGUI positionDisplay;
+    [SerializeField] [Tooltip("How often (seconds) the race position label is recalculated. 0.1 s is imperceptible to players and avoids per-frame overhead.")]
+    private float positionUpdateInterval = 0.1f;
+
     [Space]
     [Header("References")]
     [SerializeField] private RaceManager raceManager;
@@ -17,6 +22,10 @@ public class RaceHUD : MonoBehaviour
 
     private CanvasGroup _canvasGroup;
     private Athlete _playerAthlete;
+    private bool _playerFinished;
+    private string _frozenTimeDisplay;
+    private float _positionTimer;
+    private bool _raceRunning;
 
     private Athlete PlayerAthlete
     {
@@ -93,6 +102,16 @@ public class RaceHUD : MonoBehaviour
         {
             UpdateDisplay();
         }
+
+        if (_raceRunning && !_playerFinished)
+        {
+            _positionTimer += Time.deltaTime;
+            if (_positionTimer >= positionUpdateInterval)
+            {
+                _positionTimer = 0f;
+                UpdateRacePosition();
+            }
+        }
     }
 
     private void UpdateDisplay()
@@ -106,7 +125,7 @@ public class RaceHUD : MonoBehaviour
         if (timerDisplay == null || raceTimer == null)
             return;
 
-        timerDisplay.text = raceTimer.GetFormattedTime();
+        timerDisplay.text = _playerFinished ? _frozenTimeDisplay : raceTimer.GetFormattedTime();
     }
 
     private void UpdateSpeed()
@@ -122,13 +141,14 @@ public class RaceHUD : MonoBehaviour
     {
         if (newState == RaceStartState.Running)
         {
+            _raceRunning = true;
             ShowHUD();
         }
     }
 
     private void HandleTimerUpdated(string formattedTime)
     {
-        if (timerDisplay != null)
+        if (timerDisplay != null && !_playerFinished)
         {
             timerDisplay.text = formattedTime;
         }
@@ -136,10 +156,43 @@ public class RaceHUD : MonoBehaviour
 
     private void HandlePlayerFinished(Athlete athlete)
     {
+        _playerFinished = true;
+        _frozenTimeDisplay = raceTimer != null ? raceTimer.GetFormattedTime() : string.Empty;
+
         if (_canvasGroup != null)
         {
             _canvasGroup.interactable = false;
         }
+    }
+
+    private void UpdateRacePosition()
+    {
+        if (positionDisplay == null || raceManager == null || PlayerAthlete == null)
+            return;
+
+        float playerDistance = PlayerAthlete.CurrentDistance;
+        int aheadCount = 0;
+
+        foreach (Athlete athlete in raceManager.GetAllAthletes())
+        {
+            if (!athlete.isPlayer && athlete.CurrentDistance > playerDistance)
+                aheadCount++;
+        }
+
+        int position = aheadCount + 1;
+        positionDisplay.text = position + GetOrdinalSuffix(position);
+    }
+
+    private static string GetOrdinalSuffix(int n)
+    {
+        if (n % 100 >= 11 && n % 100 <= 13) return "th";
+        return (n % 10) switch
+        {
+            1 => "st",
+            2 => "nd",
+            3 => "rd",
+            _ => "th"
+        };
     }
 
     public void ShowHUD()
