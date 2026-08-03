@@ -9,6 +9,9 @@ using System.Collections.Generic;
 ///   - Disable all gameplay components so no simulation runs during replay.
 ///   - Interpolate between neighbouring frames for smooth playback at any speed.
 ///   - Apply world-space position/rotation and Animator parameters each replay tick.
+///   - Use <c>Animator.Play</c> for deterministic animation so scrubbing and slow-motion
+///     are frame-accurate rather than transition-driven.
+///   - Freeze the Animator (<c>speed = 0</c>) when replay is paused and restore it on resume.
 ///   - Re-enable disabled components when destroyed (defensive cleanup).
 /// </summary>
 public class ReplayPlaybackController : MonoBehaviour
@@ -30,7 +33,8 @@ public class ReplayPlaybackController : MonoBehaviour
 
     /// <summary>
     /// Called by <see cref="ReplayManager"/> immediately after AddComponent.
-    /// Caches references, disables gameplay components, and applies the first frame.
+    /// Caches references, disables gameplay components, subscribes to pause/resume
+    /// events, and applies the first recorded frame.
     /// </summary>
     public void Initialize(ReplayAthleteData data, Athlete athlete)
     {
@@ -45,12 +49,42 @@ public class ReplayPlaybackController : MonoBehaviour
         _athleteInput        = athlete.GetComponent<AthleteInput>();
 
         DisableGameplayComponents();
+        SubscribeToReplayEvents();
         ApplyTime(0f);
     }
 
     private void OnDestroy()
     {
+        UnsubscribeFromReplayEvents();
         RestoreGameplayComponents();
+    }
+
+    // ── Replay event subscriptions ────────────────────────────────────────────
+
+    private void SubscribeToReplayEvents()
+    {
+        if (ReplayManager.Instance == null) return;
+        ReplayManager.Instance.OnReplayPaused  += HandleReplayPaused;
+        ReplayManager.Instance.OnReplayResumed += HandleReplayResumed;
+    }
+
+    private void UnsubscribeFromReplayEvents()
+    {
+        if (ReplayManager.Instance == null) return;
+        ReplayManager.Instance.OnReplayPaused  -= HandleReplayPaused;
+        ReplayManager.Instance.OnReplayResumed -= HandleReplayResumed;
+    }
+
+    private void HandleReplayPaused()
+    {
+        // Freeze Unity's Animator so no clip time advances while paused.
+        // The last applied frame's pose is held exactly.
+        _animationController?.SetAnimatorSpeed(0f);
+    }
+
+    private void HandleReplayResumed()
+    {
+        _animationController?.SetAnimatorSpeed(1f);
     }
 
     // ── Playback API ──────────────────────────────────────────────────────────
@@ -120,15 +154,19 @@ public class ReplayPlaybackController : MonoBehaviour
     {
         return new ReplayFrame
         {
-            Timestamp         = Mathf.Lerp(a.Timestamp, b.Timestamp, t),
-            DistanceTravelled = Mathf.Lerp(a.DistanceTravelled, b.DistanceTravelled, t),
-            NormalizedSpeed   = Mathf.Lerp(a.NormalizedSpeed, b.NormalizedSpeed, t),
-            CurrentSpeed      = Mathf.Lerp(a.CurrentSpeed, b.CurrentSpeed, t),
-            // Discrete values: snap at 50% so transitions happen at the correct moment.
-            RaceState         = t >= 0.5f ? b.RaceState : a.RaceState,
-            HasFinished       = t >= 0.5f ? b.HasFinished : a.HasFinished,
-            WorldPosition     = Vector3.Lerp(a.WorldPosition, b.WorldPosition, t),
-            WorldRotation     = Quaternion.Slerp(a.WorldRotation, b.WorldRotation, t)
+            Timestamp              = Mathf.Lerp(a.Timestamp, b.Timestamp, t),
+            DistanceTravelled      = Mathf.Lerp(a.DistanceTravelled, b.DistanceTravelled, t),
+            NormalizedSpeed        = Mathf.Lerp(a.NormalizedSpeed, b.NormalizedSpeed, t),
+            CurrentSpeed           = Mathf.Lerp(a.CurrentSpeed, b.CurrentSpeed, t),
+            // Discrete values snap at 50% so transitions happen at the correct moment.
+            RaceState              = t >= 0.5f ? b.RaceState : a.RaceState,
+            HasFinished            = t >= 0.5f ? b.HasFinished : a.HasFinished,
+            WorldPosition          = Vector3.Lerp(a.WorldPosition, b.WorldPosition, t),
+            WorldRotation          = Quaternion.Slerp(a.WorldRotation, b.WorldRotation, t),
+            // For animation state, snap at 50% — same rule as RaceState.
+            // normalizedTime is lerped so the clip position is smooth between frames.
+            AnimatorStateHash      = t >= 0.5f ? b.AnimatorStateHash : a.AnimatorStateHash,
+            AnimatorNormalizedTime = Mathf.Lerp(a.AnimatorNormalizedTime, b.AnimatorNormalizedTime, t)
         };
     }
 
@@ -139,8 +177,15 @@ public class ReplayPlaybackController : MonoBehaviour
 
         if (_animationController != null)
         {
+            // Set Animator parameters so the state machine stays consistent with the
+            // recorded logic (needed for correct blend-tree weights).
             _animationController.SetRaceState(frame.RaceState);
             _animationController.SetNormalizedSpeed(frame.NormalizedSpeed);
+
+            // Immediately place the Animator at the exact recorded clip position.
+            // This makes playback deterministic, enables frame-accurate slow motion,
+            // and ensures scrubbing backward snaps to the correct pose instantly.
+            _animationController.ForceAnimationState(frame.AnimatorStateHash, frame.AnimatorNormalizedTime);
         }
     }
 
@@ -157,6 +202,10 @@ public class ReplayPlaybackController : MonoBehaviour
 
     private void RestoreGameplayComponents()
     {
+        // Restore Animator speed first so it doesn't stay frozen if replay was
+        // stopped while paused.
+        _animationController?.SetAnimatorSpeed(1f);
+
         if (_athleteMovement != null) _athleteMovement.enabled = true;
         if (_sprintController != null) _sprintController.enabled = true;
         if (_momentumController != null) _momentumController.enabled = true;

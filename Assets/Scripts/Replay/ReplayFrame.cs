@@ -33,4 +33,19 @@ public struct ReplayFrame
 
     /// <summary>World-space rotation used for direct transform application during playback.</summary>
     public Quaternion WorldRotation;
+
+    /// <summary>
+    /// Full-path hash of the Animator state active at this frame.
+    /// Used by <see cref="ReplayPlaybackController"/> to deterministically restore
+    /// exact animation position via <c>Animator.Play</c> rather than relying on
+    /// parameter-driven transitions (which have latency and can't be scrubbed).
+    /// </summary>
+    public int AnimatorStateHash;
+
+    /// <summary>
+    /// Normalised time within the current Animator state at this frame.
+    /// Passed directly to <c>Animator.Play</c> during playback.
+    /// Values above 1 are valid for looping clips and will be wrapped by Unity.
+    /// </summary>
+    public float AnimatorNormalizedTime;
 }

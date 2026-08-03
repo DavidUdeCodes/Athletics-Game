@@ -707,4 +707,20 @@ public class Athlete : MonoBehaviour
     /// </summary>
     public RaceStartState CurrentAnimationState =>
         _animationController != null ? _animationController.CurrentRaceState : RaceStartState.Idle;
+
+    /// <summary>
+    /// Returns the full-path hash and normalised time of the currently active Animator
+    /// state so <see cref="ReplayRecorder"/> can record them without coupling directly
+    /// to <see cref="AthleteAnimationController"/>.
+    /// </summary>
+    public void GetAnimatorStateInfo(out int stateHash, out float normalizedTime)
+    {
+        if (_animationController != null)
+            _animationController.GetAnimatorStateInfo(out stateHash, out normalizedTime);
+        else
+        {
+            stateHash = 0;
+            normalizedTime = 0f;
+        }
+    }
 }

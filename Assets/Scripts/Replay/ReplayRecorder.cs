@@ -111,16 +111,20 @@ public class ReplayRecorder : MonoBehaviour
             Athlete athlete = _trackedAthletes[i];
             if (athlete == null) continue;
 
+            athlete.GetAnimatorStateInfo(out int animStateHash, out float animNormalizedTime);
+
             _athleteData[i].AddFrame(new ReplayFrame
             {
-                Timestamp        = _recordingTime,
-                DistanceTravelled = athlete.CurrentDistance,
-                NormalizedSpeed  = athlete.AnimationNormalizedSpeed,
-                CurrentSpeed     = athlete.CurrentSpeed,
-                RaceState        = athlete.CurrentAnimationState,
-                HasFinished      = athlete.HasFinishedRace,
-                WorldPosition    = athlete.transform.position,
-                WorldRotation    = athlete.transform.rotation
+                Timestamp             = _recordingTime,
+                DistanceTravelled     = athlete.CurrentDistance,
+                NormalizedSpeed       = athlete.AnimationNormalizedSpeed,
+                CurrentSpeed          = athlete.CurrentSpeed,
+                RaceState             = athlete.CurrentAnimationState,
+                HasFinished           = athlete.HasFinishedRace,
+                WorldPosition         = athlete.transform.position,
+                WorldRotation         = athlete.transform.rotation,
+                AnimatorStateHash     = animStateHash,
+                AnimatorNormalizedTime = animNormalizedTime
             });
         }
     }

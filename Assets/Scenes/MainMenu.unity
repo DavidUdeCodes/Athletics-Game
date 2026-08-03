@@ -3881,7 +3881,7 @@ GameObject:
   - component: {fileID: 1291833504}
   - component: {fileID: 1291833506}
   m_Layer: 6
-  m_Name: AthleteShowcase
+  m_Name: OnPodium
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

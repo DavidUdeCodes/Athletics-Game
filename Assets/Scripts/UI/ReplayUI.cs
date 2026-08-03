@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.EventSystems;
 using TMPro;
 
 /// <summary>
@@ -8,8 +9,13 @@ using TMPro;
 /// decoupled from playback internals.
 ///
 /// Shows automatically when replay starts, hides when replay ends or is stopped.
-/// All UI updates are driven by events; no per-frame polling is needed outside Update
-/// for the timeline slider sync during active playback.
+///
+/// Scrubbing behaviour (issue fix):
+///   - While the user is dragging the timeline slider, the current-time label shows
+///     a live preview of the target timestamp.
+///   - Athletes and camera are NOT moved during the drag.
+///   - The actual seek only fires when the pointer is released.
+///   - Playback state (playing/paused) is preserved across drags.
 ///
 /// Wire all serialised fields in the Inspector. ReplayManager is located via
 /// <see cref="ReplayManager.Instance"/> if not assigned.
@@ -34,7 +40,7 @@ public class ReplayUI : MonoBehaviour
     [SerializeField] private Button speedButton;
     [Tooltip("Speeds the button cycles through, in order. Wraps back to the start after the last entry.")]
     [SerializeField] private float[] speedOptions = { 0.25f, 0.5f, 1f, 1.5f, 2f };
-    [Tooltip("Index into speedOptions that playback starts at (1 = 1x with the default array above).")]
+    [Tooltip("Index into speedOptions that playback starts at (2 = 1x with the default array above).")]
     [SerializeField] private int defaultSpeedIndex = 2;
 
     [Header("Timeline")]
@@ -51,7 +57,16 @@ public class ReplayUI : MonoBehaviour
     // ── Internal state ────────────────────────────────────────────────────────
 
     private CanvasGroup _canvasGroup;
+
+    /// <summary>Suppresses <see cref="OnTimelineSliderChanged"/> while we set the slider value in code.</summary>
     private bool _suppressSliderCallback;
+
+    /// <summary>True while the user's pointer is held down on the timeline slider.</summary>
+    private bool _isDragging;
+
+    /// <summary>Whether replay was playing when the drag began; used to restore state after seek.</summary>
+    private bool _wasPlayingBeforeDrag;
+
     private int _speedIndex;
 
     // ── Unity lifecycle ───────────────────────────────────────────────────────
@@ -91,68 +106,90 @@ public class ReplayUI : MonoBehaviour
 
     private void SubscribeToReplayEvents()
     {
-        replayManager.OnReplayStarted  += HandleReplayStarted;
-        replayManager.OnReplayPaused   += HandleReplayPaused;
-        replayManager.OnReplayResumed  += HandleReplayResumed;
-        replayManager.OnReplayStopped  += HandleReplayStopped;
-        replayManager.OnReplayFinished += HandleReplayFinished;
+        replayManager.OnReplayStarted     += HandleReplayStarted;
+        replayManager.OnReplayPaused      += HandleReplayPaused;
+        replayManager.OnReplayResumed     += HandleReplayResumed;
+        replayManager.OnReplayStopped     += HandleReplayStopped;
+        replayManager.OnReplayFinished    += HandleReplayFinished;
         replayManager.OnReplayTimeChanged += HandleReplayTimeChanged;
     }
 
     private void UnsubscribeFromReplayEvents()
     {
         if (replayManager == null) return;
-        replayManager.OnReplayStarted  -= HandleReplayStarted;
-        replayManager.OnReplayPaused   -= HandleReplayPaused;
-        replayManager.OnReplayResumed  -= HandleReplayResumed;
-        replayManager.OnReplayStopped  -= HandleReplayStopped;
-        replayManager.OnReplayFinished -= HandleReplayFinished;
+        replayManager.OnReplayStarted     -= HandleReplayStarted;
+        replayManager.OnReplayPaused      -= HandleReplayPaused;
+        replayManager.OnReplayResumed     -= HandleReplayResumed;
+        replayManager.OnReplayStopped     -= HandleReplayStopped;
+        replayManager.OnReplayFinished    -= HandleReplayFinished;
         replayManager.OnReplayTimeChanged -= HandleReplayTimeChanged;
     }
 
-    // ── Button wiring ─────────────────────────────────────────────────────────
+    // ── Button + slider wiring ────────────────────────────────────────────────
 
     private void SetupButtonListeners()
     {
-        if (playPauseButton  != null) playPauseButton.onClick.AddListener(OnPlayPausePressed);
-        if (restartButton    != null) restartButton.onClick.AddListener(OnRestartPressed);
+        if (playPauseButton   != null) playPauseButton.onClick.AddListener(OnPlayPausePressed);
+        if (restartButton     != null) restartButton.onClick.AddListener(OnRestartPressed);
         if (skipToStartButton != null) skipToStartButton.onClick.AddListener(OnSkipToStartPressed);
-        if (skipToEndButton  != null) skipToEndButton.onClick.AddListener(OnSkipToEndPressed);
-        if (closeButton      != null) closeButton.onClick.AddListener(OnClosePressed);
+        if (skipToEndButton   != null) skipToEndButton.onClick.AddListener(OnSkipToEndPressed);
+        if (closeButton       != null) closeButton.onClick.AddListener(OnClosePressed);
+        if (speedButton       != null) speedButton.onClick.AddListener(OnSpeedButtonPressed);
 
-        if (speedButton != null) speedButton.onClick.AddListener(OnSpeedButtonPressed);
-
-        if (timelineSlider != null)
-        {
-            timelineSlider.onValueChanged.AddListener(OnTimelineSliderChanged);
-        }
+        SetupSliderListeners();
     }
 
     private void RemoveButtonListeners()
     {
-        if (playPauseButton  != null) playPauseButton.onClick.RemoveListener(OnPlayPausePressed);
-        if (restartButton    != null) restartButton.onClick.RemoveListener(OnRestartPressed);
+        if (playPauseButton   != null) playPauseButton.onClick.RemoveListener(OnPlayPausePressed);
+        if (restartButton     != null) restartButton.onClick.RemoveListener(OnRestartPressed);
         if (skipToStartButton != null) skipToStartButton.onClick.RemoveListener(OnSkipToStartPressed);
-        if (skipToEndButton  != null) skipToEndButton.onClick.RemoveListener(OnSkipToEndPressed);
-        if (closeButton      != null) closeButton.onClick.RemoveListener(OnClosePressed);
+        if (skipToEndButton   != null) skipToEndButton.onClick.RemoveListener(OnSkipToEndPressed);
+        if (closeButton       != null) closeButton.onClick.RemoveListener(OnClosePressed);
+        if (speedButton       != null) speedButton.onClick.RemoveListener(OnSpeedButtonPressed);
 
-        if (speedButton != null) speedButton.onClick.RemoveListener(OnSpeedButtonPressed);
+        RemoveSliderListeners();
+    }
 
-        if (timelineSlider != null)
-            timelineSlider.onValueChanged.RemoveListener(OnTimelineSliderChanged);
+    // ── Slider drag wiring ────────────────────────────────────────────────────
+
+    private void SetupSliderListeners()
+    {
+        if (timelineSlider == null) return;
+
+        timelineSlider.onValueChanged.AddListener(OnTimelineSliderChanged);
+
+        // Use EventTrigger to detect pointer-down (drag start) and pointer-up
+        // (drag end / seek commit) without polling Input each frame.
+        EventTrigger trigger = timelineSlider.gameObject.GetComponent<EventTrigger>();
+        if (trigger == null)
+            trigger = timelineSlider.gameObject.AddComponent<EventTrigger>();
+
+        var pointerDown = new EventTrigger.Entry { eventID = EventTriggerType.PointerDown };
+        pointerDown.callback.AddListener(_ => OnSliderPointerDown());
+        trigger.triggers.Add(pointerDown);
+
+        var pointerUp = new EventTrigger.Entry { eventID = EventTriggerType.PointerUp };
+        pointerUp.callback.AddListener(_ => OnSliderPointerUp());
+        trigger.triggers.Add(pointerUp);
+    }
+
+    private void RemoveSliderListeners()
+    {
+        if (timelineSlider == null) return;
+
+        timelineSlider.onValueChanged.RemoveListener(OnTimelineSliderChanged);
+
+        var trigger = timelineSlider.gameObject.GetComponent<EventTrigger>();
+        if (trigger != null)
+            trigger.triggers.Clear();
     }
 
     // ── Button handlers ───────────────────────────────────────────────────────
 
-    private void OnPlayPausePressed()
-    {
-        replayManager.TogglePlayPause();
-    }
-
-    private void OnRestartPressed()
-    {
-        replayManager.RestartReplay();
-    }
+    private void OnPlayPausePressed()   => replayManager.TogglePlayPause();
+    private void OnRestartPressed()     => replayManager.RestartReplay();
+    private void OnClosePressed()       => replayManager.StopReplay();
 
     private void OnSkipToStartPressed()
     {
@@ -161,15 +198,7 @@ public class ReplayUI : MonoBehaviour
             replayManager.ResumeReplay();
     }
 
-    private void OnSkipToEndPressed()
-    {
-        replayManager.SeekToEnd();
-    }
-
-    private void OnClosePressed()
-    {
-        replayManager.StopReplay();
-    }
+    private void OnSkipToEndPressed() => replayManager.SeekToEnd();
 
     private void OnSpeedButtonPressed()
     {
@@ -182,13 +211,49 @@ public class ReplayUI : MonoBehaviour
         UpdateSpeedLabel(speed);
     }
 
-    private void OnTimelineSliderChanged(float value)
+    // ── Slider drag handlers ──────────────────────────────────────────────────
+
+    private void OnSliderPointerDown()
     {
-        // Ignore programmatic updates to avoid feedback loops.
-        if (_suppressSliderCallback) return;
+        _isDragging = true;
+        _wasPlayingBeforeDrag = replayManager.State == ReplayState.Playing;
+        // Do not pause replay here — we just suppress seeks while dragging.
+        // Athletes freeze naturally because ReplayManager.Update only advances the
+        // clock during Playing state, and we are not seeking.
+    }
+
+    private void OnSliderPointerUp()
+    {
+        if (!_isDragging) return;
+        _isDragging = false;
 
         if (replayManager.CurrentReplay == null) return;
 
+        // Commit the seek to the position the slider was released at.
+        float seekTime = timelineSlider.value * replayManager.CurrentReplay.TotalDuration;
+        replayManager.SeekTo(seekTime);
+
+        // Restore playback if it was running before the drag started.
+        if (_wasPlayingBeforeDrag && replayManager.State == ReplayState.Paused)
+            replayManager.ResumeReplay();
+    }
+
+    private void OnTimelineSliderChanged(float value)
+    {
+        // Ignore updates we triggered in code.
+        if (_suppressSliderCallback) return;
+        if (replayManager.CurrentReplay == null) return;
+
+        if (_isDragging)
+        {
+            // Preview only: update the time label so the user can see where they
+            // will land, but do not seek (no camera movement, no athlete movement).
+            float previewTime = value * replayManager.CurrentReplay.TotalDuration;
+            UpdateCurrentTimeLabel(previewTime);
+            return;
+        }
+
+        // Non-drag change (e.g. keyboard stepping the slider): seek immediately.
         float seekTime = value * replayManager.CurrentReplay.TotalDuration;
         replayManager.SeekTo(seekTime);
     }
@@ -197,14 +262,13 @@ public class ReplayUI : MonoBehaviour
 
     private void HandleReplayStarted(ReplayData data)
     {
-        if (timelineSlider != null)
-        {
-            _suppressSliderCallback = true;
-            timelineSlider.value = 0f;
-            _suppressSliderCallback = false;
-        }
+        _suppressSliderCallback = true;
+        if (timelineSlider != null) timelineSlider.value = 0f;
+        _suppressSliderCallback = false;
 
-        // Reset to the configured default speed each time a replay starts.
+        _isDragging = false;
+
+        // Reset to configured default speed each time a replay starts.
         _speedIndex = ClampSpeedIndex(defaultSpeedIndex);
         replayManager.SetPlaybackSpeed(speedOptions[_speedIndex]);
 
@@ -215,28 +279,17 @@ public class ReplayUI : MonoBehaviour
         Show();
     }
 
-    private void HandleReplayPaused()
-    {
-        UpdatePlayPauseIcon(isPlaying: false);
-    }
-
-    private void HandleReplayResumed()
-    {
-        UpdatePlayPauseIcon(isPlaying: true);
-    }
-
-    private void HandleReplayStopped()
-    {
-        Hide();
-    }
-
-    private void HandleReplayFinished()
-    {
-        UpdatePlayPauseIcon(isPlaying: false);
-    }
+    private void HandleReplayPaused()  => UpdatePlayPauseIcon(isPlaying: false);
+    private void HandleReplayResumed() => UpdatePlayPauseIcon(isPlaying: true);
+    private void HandleReplayStopped() => Hide();
+    private void HandleReplayFinished() => UpdatePlayPauseIcon(isPlaying: false);
 
     private void HandleReplayTimeChanged(float time)
     {
+        // While dragging, the preview label is controlled by OnTimelineSliderChanged;
+        // don't let replay clock updates overwrite it.
+        if (_isDragging) return;
+
         UpdateCurrentTimeLabel(time);
         UpdateSliderPosition(time);
     }
@@ -268,8 +321,8 @@ public class ReplayUI : MonoBehaviour
         if (speedLabel != null)
             speedLabel.text = text;
 
-        // If the button itself carries the label (e.g. no separate TMP text assigned
-        // elsewhere), reflect the speed on the button too.
+        // If the button itself carries the label (no separate TMP text assigned),
+        // reflect the speed on the button too.
         if (speedButton != null)
         {
             var buttonLabel = speedButton.GetComponentInChildren<TextMeshProUGUI>();

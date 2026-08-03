@@ -173,6 +173,11 @@ public class RaceManager : MonoBehaviour
     
     private void HandleRaceStartControllerStateChanged(RaceStartState newState)
     {
+        // Begin recording as soon as athletes enter the blocks so the full
+        // pre-race countdown is included in the replay timeline.
+        if (newState == RaceStartState.OnYourMarks)
+            replayRecorder?.StartRecording();
+
         OnRaceStartStateChanged?.Invoke(newState);
     }
     
@@ -184,7 +189,7 @@ public class RaceManager : MonoBehaviour
     private void HandleRaceStartControllerOfficiallyStarted()
     {
         _raceActive = true;
-        replayRecorder?.StartRecording();
+        // Recording was already started when OnYourMarks fired.
         StartRace();
     }
     

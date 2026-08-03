@@ -96,6 +96,41 @@ public class AthleteAnimationController : MonoBehaviour
         SetNormalizedSpeed(0f);
     }
 
+    // ── Replay support ────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Sets Animator.speed directly. Pass 0 to freeze all animations (replay pause),
+    /// 1 to restore normal playback speed.
+    /// </summary>
+    public void SetAnimatorSpeed(float speed)
+    {
+        if (animator == null) return;
+        animator.speed = speed;
+    }
+
+    /// <summary>
+    /// Returns the full-path hash and normalised time of the currently active
+    /// Animator state (layer 0). Used by <see cref="ReplayRecorder"/> each frame.
+    /// </summary>
+    public void GetAnimatorStateInfo(out int stateHash, out float normalizedTime)
+    {
+        if (animator == null) { stateHash = 0; normalizedTime = 0f; return; }
+        AnimatorStateInfo info = animator.GetCurrentAnimatorStateInfo(0);
+        stateHash = info.fullPathHash;
+        normalizedTime = info.normalizedTime;
+    }
+
+    /// <summary>
+    /// Immediately places the Animator at the given state and normalised time.
+    /// Bypasses transition blending for deterministic replay scrubbing.
+    /// No-op if <paramref name="stateHash"/> is 0 (unrecorded frame).
+    /// </summary>
+    public void ForceAnimationState(int stateHash, float normalizedTime)
+    {
+        if (animator == null || stateHash == 0) return;
+        animator.Play(stateHash, 0, normalizedTime);
+    }
+
     // --- Animation Event receivers ---
     // Add an Animation Event on the last frame of the FinishDip / Emote
     // clips that calls the matching method below by name.
