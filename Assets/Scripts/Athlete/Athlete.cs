@@ -682,4 +682,29 @@ public class Athlete : MonoBehaviour
     public float RaceTime => _raceTime;
     public bool HasFinishedRace => _hasFinishedRace;
     public bool IsAtRest => !_movement.IsMoving && _hasFinishedRace;
+
+    /// <summary>
+    /// The normalised 0–1 speed value currently being fed to the Animator blend tree.
+    /// Used by ReplayRecorder to capture the exact value without duplicating the logic.
+    /// </summary>
+    public float AnimationNormalizedSpeed
+    {
+        get
+        {
+            if (_hasFinishedRace && _movement != null && _finishPeakSpeed > 0f)
+                return Mathf.Clamp01(_movement.CurrentSpeed / _finishPeakSpeed);
+            if (_momentumController != null)
+                return _momentumController.CurrentMomentum;
+            if (_aiSprinterController != null)
+                return _aiSprinterController.NormalizedSpeed;
+            return 0f;
+        }
+    }
+
+    /// <summary>
+    /// The Animator state this athlete is currently in.
+    /// Used by ReplayRecorder so it reads directly from the animation controller.
+    /// </summary>
+    public RaceStartState CurrentAnimationState =>
+        _animationController != null ? _animationController.CurrentRaceState : RaceStartState.Idle;
 }

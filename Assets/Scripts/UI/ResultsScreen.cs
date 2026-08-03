@@ -27,12 +27,14 @@ public class ResultsScreen : MonoBehaviour
         InitializeReferences();
         InitializeCanvasGroup();
         SetupButtonListeners();
+        SubscribeToReplayEvents();
         HideResultsScreen();
     }
 
     private void OnDestroy()
     {
         RemoveButtonListeners();
+        UnsubscribeFromReplayEvents();
     }
 
     private void InitializeReferences()
@@ -42,6 +44,35 @@ public class ResultsScreen : MonoBehaviour
 
         if (sessionManager == null)
             sessionManager = EventSessionManager.Instance;
+    }
+
+    private void SubscribeToReplayEvents()
+    {
+        if (ReplayManager.Instance != null)
+        {
+            ReplayManager.Instance.OnReplayStopped += HandleReplayStopped;
+            ReplayManager.Instance.OnReplayFinished += HandleReplayFinished;
+        }
+    }
+
+    private void UnsubscribeFromReplayEvents()
+    {
+        if (ReplayManager.Instance != null)
+        {
+            ReplayManager.Instance.OnReplayStopped -= HandleReplayStopped;
+            ReplayManager.Instance.OnReplayFinished -= HandleReplayFinished;
+        }
+    }
+
+    private void HandleReplayStopped()
+    {
+        ShowResultsScreen();
+    }
+
+    private void HandleReplayFinished()
+    {
+        // Replay reached the end and is now paused; the ReplayUI remains visible.
+        // Results screen stays hidden until the user closes the replay via ReplayUI.
     }
 
     private void InitializeCanvasGroup()
@@ -137,7 +168,14 @@ public class ResultsScreen : MonoBehaviour
 
     private void OnReplayPressed()
     {
-        Debug.Log("Replay button pressed - functionality will be implemented later");
+        if (ReplayManager.Instance == null || !ReplayManager.Instance.HasPendingReplay)
+        {
+            Debug.LogWarning("[ResultsScreen] No replay data available.");
+            return;
+        }
+
+        HideResultsScreen();
+        ReplayManager.Instance.StartReplay();
     }
 
     private void OnMainMenuPressed()

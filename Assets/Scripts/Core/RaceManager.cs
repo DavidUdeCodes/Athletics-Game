@@ -31,6 +31,8 @@ public class RaceManager : MonoBehaviour
     [SerializeField] [Tooltip("Starting blocks controller for spawning/removing starting blocks")]
     private StartingBlocksController startingBlocksController;
     [SerializeField] private RaceCameraController cameraController;
+    [SerializeField] [Tooltip("Records race state for replay playback. Attach ReplayRecorder to this GameObject.")]
+    private ReplayRecorder replayRecorder;
 
     [Space]
     [Header("Player Athlete")]
@@ -130,7 +132,12 @@ public class RaceManager : MonoBehaviour
         }
         
         SubscribeToRaceStartControllerEvents();
-        
+
+        if (replayRecorder == null)
+            replayRecorder = GetComponent<ReplayRecorder>();
+
+        replayRecorder?.Initialize(this);
+
         if (EventSessionManager.Instance.HasConfig)
         {
             EventSessionConfig sessionConfig = EventSessionManager.Instance.CurrentConfig;
@@ -177,6 +184,7 @@ public class RaceManager : MonoBehaviour
     private void HandleRaceStartControllerOfficiallyStarted()
     {
         _raceActive = true;
+        replayRecorder?.StartRecording();
         StartRace();
     }
     
@@ -455,6 +463,11 @@ public class RaceManager : MonoBehaviour
         
         _raceFinished = true;
         raceTimer?.StopTimer();
+
+        ReplayData replay = replayRecorder?.StopRecording(GetRaceResults());
+        if (replay != null && ReplayManager.Instance != null)
+            ReplayManager.Instance.SetCompletedReplay(replay);
+
         OnRaceFinished?.Invoke();
         Debug.Log("Race finished - all athletes at rest");
     }
